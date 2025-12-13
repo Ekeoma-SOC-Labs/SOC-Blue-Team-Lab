@@ -1,133 +1,122 @@
-03 — Domain Controller (DC01) Setup & Active Directory Configuration
-Overview
+# **Domain Controller (DC01) Setup & Active Directory Configuration**
+### **Goal of This Component**
 
-This section documents the full setup of Windows Server 2019 Domain Controller (DC01) for the SOC Home Lab.
-It includes:
+The purpose of this component is to deploy a Windows Server 2019 Domain Controller that provides:
 
-Server preparation
+- Centralized authentication
 
-Active Directory Domain Services (ADDS) installation
+- Identity and access management
 
-DNS configuration
+- DNS services
 
-Domain creation (EKE.local)
+- Group Policy enforcement
 
-Organizational Unit (OU) structure
+This Domain Controller represents a real enterprise Active Directory environment, which is critical for realistic SOC monitoring, detection engineering, and attack simulations.
 
-User & computer accounts
+### **Environment Details**
 
-GPO hardening
+- OS: Windows Server 2019 (64-bit)
 
-Network configuration
+- Role: Domain Controller (AD DS + DNS)
 
-The domain controller is the core of the SOC lab. It provides authentication, policy enforcement, and identity management—mirroring a real enterprise environment.
+- Hostname: DC01
 
-1. Configure VirtualBox Network Interfaces
+- Domain Name: EKE.local
 
-DC01 uses two network adapters:
+- Static IP (Host-only): 192.168.56.10
 
-Adapter	Mode	Purpose
-Adapter 1	NAT	Internet access (Windows updates, package downloads)
-Adapter 2	Host-only	Internal SOC network (communication with Win10 + Splunk)
-Expected IP addresses (example)
+- DNS Server: 127.0.0.1
 
-NAT → 10.x.x.x (DHCP)
+## **Step - 1. VirtualBox Network Configuration**
+### **Network Design**
 
-Host-only → 192.168.56.10 (Static IP assigned manually)
+DC01 is configured with two network adapters:
 
-Screenshot placeholder
+- Adapter 1	    NAT	          Internet access (Windows Updates, downloads)
 
-Paste screenshot here:
+- Adapter 2   	Host-only	    Internal SOC lab communication
 
-![DC01 Network Adapters](screenshots/dc01/dc01-network-adapters.png)
+### **Expected IP Addressing**
 
-2. Set Static IP Address for DC01
+NAT Adapter: DHCP (10.x.x.x)
 
-A Domain Controller must have a static IP.
-
-Settings → Network & Internet → Change Adapter Options → Host-only Adapter Properties
-
-Assign:
-
-IPv4 Address: 192.168.56.10
-Subnet Mask: 255.255.255.0
-Default Gateway: (leave blank)
-DNS Server: 127.0.0.1
-
-Screenshot placeholder:
-![DC01 Static IP](screenshots/dc01/dc01-static-ip.png)
-
-3. Rename Server
-
-Set hostname:
-
-DC01
-
-Screenshot:
-![DC01 Rename](screenshots/dc01/dc01-rename.png)
+Host-only Adapter: Static IP → 192.168.56.10
 
 
-Restart.
+## **Step - 2. Static IP Configuration**
 
-4. Install Active Directory Domain Services (ADDS)
+A Domain Controller must always use a static IP address to ensure DNS and authentication stability.
 
-Open Server Manager
+### **Steps**
 
-Click Add Roles and Features
+1. Open Network & Internet Settings
 
-Select:
+2. Click Change adapter options
 
-Active Directory Domain Services
+3. Open Host-only Adapter Properties
 
-DNS Server (automatically selected)
+4. Configure IPv4 manually:
 
-Confirm and install
+- IP Address: 192.168.56.10
 
-Screenshot:
-![Install ADDS](screenshots/dc01/dc01-adds-install.png)
+- Subnet Mask: 255.255.255.0
 
-5. Promote Server to Domain Controller
+- Default Gateway: (leave blank)
 
-After installation:
+- DNS Server: 127.0.0.1
 
-Click Promote this server to a domain controller
+## **Step - 3 Rename the Server**
 
-Choose:
+The server was renamed to clearly identify its role.
 
-Add a new forest
+- New Hostname: DC01
 
-Root domain name: EKE.local
+After renaming, the system was restarted.
 
-Set DSRM password
+## **Step - 4. Install Active Directory Domain Services (AD DS)**
+### **Installation Steps**
 
-Keep DNS options default
+1. Open Server Manager
+2. Click Add Roles and Features
+3. Select:
 
-Complete installation and reboot
+- Active Directory Domain Services
 
-Screenshot:
-![DC Promotion](screenshots/dc01/dc-promotion.png)
+- DNS Server (auto-selected)
 
-6. Verify Domain Services
+4. Complete installation
 
-After reboot, log in as:
+## **Step - 5. Promote Server to Domain Controller**
+
+After AD DS installation, the server was promoted to a Domain Controller.
+
+### **Promotion Configuration**
+
+- Deployment: Add a new forest
+
+- Root Domain Name: EKE.local
+
+- DNS: Enabled
+
+- DSRM Password: Set securely
+
+The server rebooted automatically after promotion.
+
+## **Step - 6. Verify Domain Services**
+
+After reboot, login was performed using:
 
 EKE\Administrator
 
-
-Run:
+### **Service Verification Command**
 
 Get-Service adws,dns,ntds,kdc
 
+All services were confirmed Running.
 
-Expected: all services Running
+## **Step - 7. Organizational Unit (OU) Structure**
 
-Screenshot:
-![ADDS Running](screenshots/dc01/adds-running.png)
-
-7. Create Organizational Units (OUs)
-
-Open Active Directory Users and Computers
-Create the following structure:
+To mirror enterprise best practices, the following OU structure was created:
 
 EKE.local
 │
@@ -137,107 +126,99 @@ EKE.local
 ├── _Servers
 └── _Groups
 
-Screenshot:
-![OU Structure](screenshots/dc01/ou-structure.png)
+## **Step - 8. Domain User Creation**
 
-8. Create Domain Users
+Test and SOC-related user accounts were created under the _Users OU:
 
-Inside _Users:
+- WIN10User
 
-Create:
+- SOCAnalyst
 
-WIN10User
+- ITSupport
 
-SOCAnalyst
+These accounts are used for login simulation, log generation, and detection testing.
 
-ITSupport
+## **Step - 9. Join Windows 10 Endpoint to Domain**
 
-Any test accounts you want to simulate
+The Windows 10 endpoint (WIN10-CL01) was joined to the domain.
 
-Screenshot:
-![Create Users](screenshots/dc01/create-users.png)
+### **Steps**
 
-9. Join WIN10-CL01 to the Domain
+1. Open System Properties
+2. Click Rename this PC (Advanced)
+3. Select Domain
+4. Enter: EKE.local
 
-(Already done earlier — document it here)
+Authenticate with domain admin credentials
 
-Steps:
+## **Step - 10. Group Policy – Security Baseline**
 
-On Win10 → System Properties → Rename this PC
+A basic security hardening GPO was created.
 
-Domain: EKE.local
+### **GPO Name**
+Baseline-Security
 
-Enter domain admin:
+### **Applied To**
 
-Administrator / Reign+Revival1@
+- EKE.local domain
 
-Screenshot:
-![Join Domain](screenshots/win10/win10-join-domain.png)
+## **Configured Policies**
 
-10. Create GPO for Basic Security Hardening
+### **Password Policy**
 
-Open Group Policy Management:
+- Minimum length: 12
 
-Create a new GPO:
+- History: 24
 
-GPO: Baseline-Security
+- Complexity: Enabled
+
+- Maximum age: 60 days
+
+### **Account Lockout**
+
+- 5 failed attempts
+
+- Lockout duration: 15 minutes
+
+## **Step - 11. DNS and Replication Verification**
+### **Commands Used in poweshell**
+- ipconfig /all
+- nslookup dc01
+- nslookup eke.local
+
+### **Expected Result**
+
+- DNS resolves to 192.168.56.10
+
+- Domain name resolves correctly
+
+## **Step - 12. Final Health Checks**
+
+### **Additional validation steps:**
+
+powershell - dcdiag
+
+- Checked Directory Services event logs
+
+- Verified WIN10-CL01 appears in _Computers OU
+
+## **SOC & Real-World Relevance**
+
+In real enterprise environments, Domain Controllers are the primary source of security telemetry, including:
+
+- Authentication events
+
+- Privilege escalation attempts
+
+- Lateral movement detection
+
+- Policy violations
+
+This DC01 setup enables realistic SOC detections using Windows Security logs, PowerShell logs, and Active Directory telemetry.
 
 
-Apply to:
+## **Ekeoma Eneogwe**
 
-EKE.local domain
-
-
-Configure:
-
-Password Policies:
-Minimum length: 12  
-Password history: 24  
-Complexity: Enabled  
-Max age: 60 days
-
-Account Lockout:
-5 failed attempts  
-Lockout 15 minutes
-
-UAC & Local Admin Restriction:
-Deny local login for all except administrators
-
-Screenshot:
-![GPO Baseline](screenshots/dc01/gpo-baseline.png)
-
-11. Create GPO for Win10 Sysmon Deployment (Optional)
-
-Later used to automate Sysmon installation via GPO.
-
-12. Verify Replication and DNS
-
-Run:
-
-ipconfig /all
-nslookup dc01
-nslookup eke.local
-
-
-Expected:
-
-DNS resolves to 192.168.56.10
-
-AD domain resolves correctly
-
-Screenshot:
-![DNS Verified](screenshots/dc01/dns-verified.png)
-
-13. Final Checks
-
-Run dcdiag
-
-Check event logs under Directory Services
-
-Ensure Win10 appears in _Computers OU
-
-Author
-
-Ekeoma Eneogwe
 Cybersecurity Analyst — SOC / Blue Team
-Active Directory • Network Security • Detection Engineering
+
+Active Directory • Detection Engineering • SIEM Operations
