@@ -1,145 +1,184 @@
-02 — Windows 10 Endpoint Configuration & Security Hardening
-Overview
+# **Windows 10 Endpoint Configuration & Security Hardening**
+### **Goal of This Component**
 
-This document covers configuration of the Windows 10 machine used as the monitored endpoint in the SOC home lab. It includes networking setup, domain joining, Sysmon installation, log forwarding, and endpoint hardening.
+This Windows 10 machine represents a standard enterprise user workstation in the SOC home lab.
+It is monitored for security events and forwards logs to Splunk for detection, investigation, and analysis.
 
-1. Configure VirtualBox Network Interfaces
+In a real SOC environment, this type of endpoint is where most attacks begin (phishing, credential abuse, PowerShell misuse).
 
-Windows 10 uses two adapters:
+## **Environment Details**
 
-Adapter	Mode	Purpose
-Adapter 1	NAT	Internet access (updates, packages)
-Adapter 2	Host-only	Internal SOC network (communication with DC01 & Splunk)
+- OS: Windows 10 (64-bit)
 
-Expected IP addresses (example):
+- Hostname: WIN10-CL01
 
-NAT → 10.x.x.x (assigned automatically)
+- Role: User endpoint / log source
 
-Host-only → 192.168.56.102 (static or DHCP from VirtualBox)
+- Domain: EKE.local
 
-Screenshot:
-![Win10 Network Adapters](screenshots/win10/win10-network-adapters.png)
+- IP Address (Host-only): 192.168.56.102
 
-2. Rename Computer & Join Domain (EKE.local)
-Steps:
+- Log Forwarding: Splunk Universal Forwarder
 
-Open System Properties → Rename this PC
+## **Step 1 — Configure VirtualBox Network Interfaces**
+### **Network Design**
 
-Set computer name: WIN10-CL01
+Two network adapters were configured for the Windows 10 VM:
 
-Join Domain → EKE.local
+Adapter 1	                NAT	           Internet access (updates, downloads)
 
-Enter domain admin credentials
+Adapter 2	                Host-only	   Internal SOC network (DC01 & Splunk communication)
 
-Restart system
+Expected IP addresses:
 
-Screenshot:
-![Join Domain](screenshots/win10/win10-join-domain.png)
+- NAT: 10.x.x.x (assigned automatically)
 
-3. Verify Domain Connectivity
+- Host-only: 192.168.56.102
 
-Run:
+## **Step 2 — Rename Computer and Join Domain (EKE.local)**
 
+To integrate the endpoint into the enterprise environment, the system was renamed and joined to the Active Directory domain.
+
+### **Steps Performed**
+
+1. Open System Properties
+
+2. Click Rename this PC
+
+3. Set computer name to:
+
+WIN10-CL01
+
+
+4. Select Domain and enter:
+
+EKE.local
+
+
+5. Authenticate using domain administrator credentials
+
+6. Restart the system
+
+## **Step 3 — Verify Domain Connectivity**
+
+After reboot, domain membership and connectivity were verified.
+
+### **Commands Used**
 whoami
 ping dc01
 ping 192.168.56.10
 
+### **Expected Output**
 
-Expected output:
+- Logged-in user shows domain context (e.g. eke\win10user)
 
-eke\win10user
-Reply from 192.168.56.10...
+- Successful ping responses from DC01
 
+## **Step 4 — Create Local Administrator Account**
 
-Screenshot:
-![Whoami Output](screenshots/win10/whoami-domain.png)
+A local administrator account was created for maintenance and recovery scenarios.
 
-4. Create Local Admin User (Optional)
+### **Commands Used**
 net user LocalAdmin Pass@123 /add
 net localgroup administrators LocalAdmin /add
 
+This mirrors real-world practices where break-glass or local admin access is maintained.
 
-This is useful for maintenance.
+## **Step 5 — Install Splunk Universal Forwarder**
 
-5. Install Sysmon (Critical for Detection)
+The Splunk Universal Forwarder was installed to forward endpoint logs to the Splunk server.
 
-Download Sysmon
+### **Software Downloaded**
 
-Download SwiftOnSecurity Sysmon config
+- Splunk Universal Forwarder (Windows x64)
 
-Run:
+- Download page:
+https://www.splunk.com/en_us/download/universal-forwarder.html
 
-sysmon64.exe -i sysmonconfig.xml
+### **Installation Notes**
+
+- Installed as Local System
+
+- Default install path used:
+
+C:\Program Files\SplunkUniversalForwarder\
 
 
-Screenshot:
-![Sysmon Install](screenshots/win10/sysmon-installed.png)
+- No receiving port enabled (forwarder-only role)
 
-6. Install Splunk Universal Forwarder
+- Splunk server configured as destination:
 
-Download UF installer (Windows x64)
+192.168.56.103:9997
 
-Run:
+## **Step 6 — Configure Log Collection (inputs.conf)**
 
-msiexec /i splunkforwarder.msi AGREETOLICENSE=Yes /quiet
+Windows Event Logs were configured for collection.
 
-Configure forwarder:
-
-Edit:
-
+### **File Location**
 C:\Program Files\SplunkUniversalForwarder\etc\system\local\inputs.conf
 
-
-Add:
+### **Configuration Applied**
+[default]
+host = WIN10-CL01
 
 [WinEventLog://Security]
 disabled = 0
+renderXml = true
 
 [WinEventLog://System]
 disabled = 0
+renderXml = true
 
 [WinEventLog://Application]
 disabled = 0
+renderXml = true
 
-[WinEventLog://Microsoft-Windows-Sysmon/Operational]
+[WinEventLog://Microsoft-Windows-PowerShell/Operational]
 disabled = 0
+renderXml = true
 
-
-Outputs:
-
-[tcpout]
-defaultGroup=splunk_group
-
-[tcpout:splunk_group]
-server=192.168.56.103:9997
-
-
-Screenshot:
-![UF Config](screenshots/win10/universal-forwarder-config.png)
-
-7. Verify Logs Reach Splunk
-
-On Win10:
-
+## **Step 7 — Verify Logs Are Reaching Splunk**
+### **Forwarder Verification (Windows)**
+cd "C:\Program Files\SplunkUniversalForwarder\bin"
 splunk list forward-server
 
 
-Expected:
+Expected output:
 
 Active forwards:
     192.168.56.103:9997
 
-
-On Splunk Searches:
-
+### **Splunk Search Verification**
 index=wineventlog host=WIN10-CL01
 
+Events appearing confirmed successful ingestion.
 
-Screenshot:
-![Splunk Log Ingestion](screenshots/win10/splunk-results.png)
+## **Step 8 — Notes on Detection & SOC Relevance**
 
-Author
+This endpoint provides high-value telemetry for SOC monitoring, including:
 
-Ekeoma Eneogwe
+- Authentication events (logons, failures)
+
+- PowerShell execution activity
+
+- Application and system behavior
+
+These logs are critical for detecting:
+
+- Credential abuse
+
+- Lateral movement
+
+- Malicious scripting activity
+
+## **Future Enhancements**
+
+- Install Sysmon for deeper endpoint visibility
+
+- Deploy Sysmon via GPO from DC01
+
+- Add advanced PowerShell logging
+
+## **Ekeoma Eneogwe**
 Cybersecurity Analyst — SOC / Blue Team
-Hands-on detection engineering & security monitoring projects.
+Hands-on detection engineering & security monitoring projects
