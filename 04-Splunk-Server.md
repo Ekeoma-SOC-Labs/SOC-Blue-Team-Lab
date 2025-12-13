@@ -1,41 +1,38 @@
-04 — Splunk Server (Ubuntu) Setup & Log Ingestion Pipeline
-Overview
+# **Splunk Server (Ubuntu) Setup and Log Ingestion Pipeline**
+## **Goal of This Component**
 
-This document covers the installation and configuration of the Splunk Enterprise Server running on Ubuntu.
-It includes networking configuration, Splunk installation, index creation, input configuration, and validation of incoming logs from Windows endpoints.
+The goal of this server is to act as the central SIEM for my SOC home lab.
+It receives logs from Windows endpoints and the domain controller, indexes them, and provides a web interface for searching, monitoring, and investigations.
 
-The Splunk server is the central logging platform for the SOC lab and receives logs from:
+## **Environment Details**
 
-Windows 10 endpoint (via Universal Forwarder)
+OS: Ubuntu Server (64-bit)
 
-Domain Controller (via Universal Forwarder)
+Role: Splunk Enterprise Server (Indexer + Search Head)
 
-Future Linux endpoints
+Hostname: splunk
 
-Attack simulations (PowerShell, malware, etc.)
+Static IP (Host-only): 192.168.56.103
 
-1. Configure Ubuntu Network Interfaces
+Splunk Web Port: 8000
 
-Ubuntu uses two network adapters:
+Receiving Port: 9997
+
+## **Step 1 — Network Configuration (Ubuntu)**
+### **Network Design**
+
+Two network adapters were configured:
 
 Adapter	Mode	Purpose
-Adapter 1	NAT	Internet access (updates, packages)
-Adapter 2	Host-only	Internal SOC network communication with Win10 and DC01
+Adapter 1	NAT	Internet access (updates, downloads)
+Adapter 2	Host-only	Internal SOC lab communication
+### **Static IP Configuration (Host-only)**
 
-Expected IP addresses:
+The Netplan configuration file was edited to assign a static IP address to the host-only adapter.
 
-NAT → Assigned dynamically (10.x.x.x)
+Command used: sudo nano /etc/netplan/01-netcfg.yaml
 
-Host-only → 192.168.56.103 (static recommended)
-
-Set Static Host-Only IP
-
-Edit Netplan config:
-
-sudo nano /etc/netplan/01-netcfg.yaml
-
-
-Example config:
+Configuration applied:
 
 network:
   version: 2
@@ -47,132 +44,153 @@ network:
       nameservers:
         addresses: [8.8.8.8, 1.1.1.1]
 
+Applied the configuration: sudo netplan apply
 
-Apply:
-
-sudo netplan apply
-
-
-Validation:
+### **Validation**
 
 ip a
-ping 192.168.56.102  (Win10)
-ping 192.168.56.10   (DC01)
 
-2. Install Splunk Enterprise
+ping 192.168.56.102 (WIN10-CL01)
 
-Download Splunk:
+ping 192.168.56.10 (DC01)
 
-wget -O splunk.tgz "https://download.splunk.com/products/splunk/releases/10.1.0/linux/splunk-10.1.0.tgz"
+## **Step 2 — Splunk Enterprise Installation (Ubuntu)**
+### **Software Downloaded**
 
+- Splunk Enterprise 10.x for Linux (64-bit)
 
-Extract:
+Downloaded from the official Splunk website:
 
-sudo tar -xvf splunk.tgz -C /opt
+https://www.splunk.com/en_us/download/splunk-enterprise.html
 
+Downloaded directly on the server using:
 
-Set Ownership:
+wget -O splunk.tgz https://download.splunk.com/products/splunk/releases/10.1.0/linux/splunk-10.1.0.tgz
+
+### **Installation Process**
+
+Extracted Splunk into /opt:
+
+sudo tar -xvzf splunk.tgz -C /opt
+
+Set correct ownership:
 
 sudo chown -R splunk:splunk /opt/splunk
 
-
-Start Splunk & Accept License:
+Started Splunk and accepted the license:
 
 sudo -u splunk /opt/splunk/bin/splunk start --accept-license
 
+During first startup:
 
-Create admin username & password.
+- Admin username and password were created
 
-3. Configure Splunk Web UI Access
+- Splunk services started successfully
 
-By default Splunk binds to localhost.
+Enabled Splunk to start on boot:
 
-Allow remote access:
+sudo /opt/splunk/bin/splunk enable boot-start
+
+## **Step 3 — Splunk Web Configuration (Remote Access)**
+
+By default, Splunk Web binds only to localhost.
+To allow access from the Windows endpoint, remote access was enabled.
+
+Commands used:
 
 sudo -u splunk /opt/splunk/bin/splunk set web-host 0.0.0.0
-sudo systemctl restart Splunkd
+sudo /opt/splunk/bin/splunk restart
 
+### **Access Verification**
 
-Access from Win10:
+From WIN10-CL01, Splunk Web was accessed at:
 
 http://192.168.56.103:8000
 
-4. Create Indexes for Log Ingestion
+Successful login confirmed external connectivity.
 
-Navigate to:
+## **Step 4 — Index Creation (Log Organization)**
+
+Indexes were created to separate and organize log sources.
+
+Navigation path:
 
 Settings → Indexes → New Index
 
-Create:
+Indexes created and Purpose:
 
-Index Name	Purpose
-wineventlog	Windows logs
-sysmon	Sysmon events
+wineventlog	Windows Security, System, Application logs
+
+sysmon	Sysmon telemetry
+
 endpoint	Generic endpoint logs
-network	Network logs (future)
 
-(Your screenshots go under this section.)
+network	Network telemetry (future use)
 
-5. Configure Splunk to Receive Logs
+## **Step 5 — Configure Splunk to Receive Logs**
 
-Enable TCP input on port 9997:
+To receive logs from Universal Forwarders, a listening port was enabled.
 
-In GUI:
+### **GUI Configuration**
 
-Settings → Forwarding and receiving → Configure receiving → New Receiving Port
+Settings → Forwarding and Receiving → Configure Receiving → New Receiving Port
 
-Port:
+Port configured:
 
 9997
 
+### **CLI Verification**
 
-Enable:
+sudo /opt/splunk/bin/splunk list listen
 
-splunk enable listen 9997 -auth admin:<password>
+## **Step 6 — Log Ingestion Validation**
 
-6. Validate Incoming Events
+### **Forwarder Connectivity Check**
 
-From Splunk Search:
-
-Windows Event Logs
-index=wineventlog host=WIN10-CL01
-
-Sysmon Logs
-index=sysmon host=WIN10-CL01
-
-Check Forwarder Status
 index=_internal sourcetype=splunkd component=Metrics group=tcpin_connections
 
+Expected sources:
 
-Expect to see connections from:
+- 192.168.56.102 (WIN10-CL01)
 
-192.168.56.102 → Win10
+- 192.168.56.10 (DC01)
 
-192.168.56.10 → DC01
+### **Windows Event Logs**
 
-7. Real-World SOC Relevance
+index=wineventlog host=WIN10-CL01
 
-Splunk servers are used in enterprise SOC environments to:
+### **Sysmon Logs**
 
-✔ Correlate logs across the entire network
+index=sysmon host=WIN10-CL01
 
-(Domain controller, endpoints, firewalls, cloud, etc.)
+## **Step 7 — Troubleshooting Observations**
 
-✔ Detect malicious behavior
+Issues encountered and resolved during setup:
 
-(Security logs + Sysmon + PowerShell logs)
+- Splunk Web initially unreachable due to localhost binding
 
-✔ Build dashboards for threat monitoring
-✔ Support threat hunting
+- Host-only network misconfiguration caused connectivity issues
 
-(Mitre ATT&CK mapping)
+- No logs arrived until port 9997 was enabled
 
-✔ Store evidence for incident response
+- Forwarder health was confirmed using internal Splunk logs
 
-Your SOC lab simulates exactly how a real SIEM works.
+These are common real-world SIEM deployment challenges.
 
-Author
+## **Step 8 — SOC & Real-World Relevance**
 
-Ekeoma Eneogwe
+This Splunk server mirrors enterprise SOC environments by:
+
+- Centralizing logs from endpoints and servers
+
+- Supporting detection of malicious PowerShell and authentication abuse
+
+- Enabling threat hunting and investigations
+
+- Providing evidence for incident response
+
+- Supporting MITRE ATT&CK–aligned detections
+
+
+## **Ekeoma Eneogwe**
 Cybersecurity Analyst — SOC / Blue Team
-Detection engineering • Monitoring • SIEM Operations
