@@ -21,7 +21,7 @@ In this SOC lab, the Universal Forwarder is installed on WIN10-CL01 and forwards
 
 - Receiving Port: 9997
 
-### ** Logs Forwarded by This Endpoint**
+### **Logs Forwarded by This Endpoint**
 
 The following Windows logs are collected and forwarded:
 
@@ -235,4 +235,4 @@ Universal Forwarders are used in real SOC environments to:
 
 - Enable centralized monitoring and investigations
 
-This configuration mirrors enterprise-grade endpoint log collection.Purpose of the Universal Forwarder
+This configuration mirrors enterprise-grade endpoint log collection.
