@@ -235,4 +235,4 @@ Universal Forwarders are used in real SOC environments to:
 
 - Enable centralized monitoring and investigations
 
-This configuration mirrors enterprise-grade endpoint log collection.
+This configuration mirrors enterprise-grade endpoint log collection..
