@@ -1,4 +1,4 @@
-# Phase 5 Alert Triage & Incident Investigation (Splunk)
+# Phase 5 Alert Triage and Incident Investigation (Splunk)
 
 ---
 
