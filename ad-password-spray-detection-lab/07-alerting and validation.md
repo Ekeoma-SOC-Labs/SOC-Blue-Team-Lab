@@ -1,4 +1,4 @@
-# Phase 4: Alert Creation, Validation & Troubleshooting
+# Phase 4: Alert Creation, Validation and Troubleshooting
 ## Overview
 
 In this phase, I converted the authentication attack detection logic developed in Phase 3 into a fully functional Splunk alert.
