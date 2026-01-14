@@ -1,4 +1,4 @@
-# Phase 3: Authentication Failures & Detection (Splunk)
+# Phase 3: Authentication Failures and Detection (Splunk)
 
 ## Overview
 In this phase, I focused on detecting authentication-based attacks in an Active Directory environment using Windows Security logs and Splunk.
