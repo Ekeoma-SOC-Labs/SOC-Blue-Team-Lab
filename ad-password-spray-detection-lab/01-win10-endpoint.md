@@ -1,4 +1,4 @@
-# **Windows 10 Endpoint Configuration & Security Hardening**
+# **Windows 10 Endpoint Configuration and Security Hardening**
 ### **Goal of This Component**
 
 This Windows 10 machine represents a standard enterprise user workstation in the SOC home lab.
