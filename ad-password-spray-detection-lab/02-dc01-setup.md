@@ -1,4 +1,4 @@
-# **Domain Controller (DC01) Setup & Active Directory Configuration**
+# **Domain Controller (DC01) Setup and Active Directory Configuration**
 ### **Goal of This Component**
 
 The purpose of this component is to deploy a Windows Server 2019 Domain Controller that provides:
