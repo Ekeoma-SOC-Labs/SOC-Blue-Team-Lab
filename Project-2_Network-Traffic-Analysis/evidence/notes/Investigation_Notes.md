@@ -30,4 +30,10 @@ Benign / Suspicious / Confirmed Malicious
 - Victim: Windows VM
 - Sensor: Ubuntu Linux VM (Zeek, Suricata, Wireshark)
 - Attacker: Kali Linux VM
+| Role     | VM                  | Purpose                                 |
+| -------- | ------------------- | --------------------------------------- |
+| Victim   | Windows 10 / Server | Generates normal and suspicious traffic   |
+| Sensor   | Linux (Ubuntu)      | Captures and analyzes network traffic     |
+| Attacker | Kali Linux (later)  | Generates controlled suspicious traffic |
+
 
