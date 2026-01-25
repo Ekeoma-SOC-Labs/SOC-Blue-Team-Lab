@@ -30,3 +30,42 @@ Benign / Suspicious / Confirmed Malicious
 - Victim: Windows VM/ Server: Generates normal and suspicious traffic
 - Sensor: Ubuntu Linux VM (Zeek, Suricata, Wireshark):   Captures and analyzes network traffic 
 - Attacker: Kali Linux VM :  Generates controlled suspicious traffic
+
+
+
+Network design adjustment:
+Removed secondary NIC from Windows VM after driver incompatibility with virtio-net.
+
+Final design:
+- Windows Victim: single NIC (NAT)
+- Ubuntu-Splunk Sensor: host-only NIC in promiscuous mode
+
+Rationale:
+Simplified architecture to ensure stable internet access and reliable traffic capture without introducing driver dependencies.
+
+SOC relevance:
+Stability and observability take priority over unnecessary architectural complexity.
+
+Network design adjustment:
+Removed secondary NIC from Windows VM after driver incompatibility with virtio-net.
+
+Final design:
+- Windows Victim: single NIC (NAT)
+- Ubuntu-Splunk Sensor: host-only NIC in promiscuous mode
+
+Rationale:
+Simplified architecture to ensure stable internet access and reliable traffic capture without introducing driver dependencies.
+
+SOC relevance:
+Stability and observability take priority over unnecessary architectural complexity.
+
+STE 3
+DNS issue encountered:
+Windows VM was using internal DC DNS, which cannot resolve external domains.
+
+Resolution:
+Manually set DNS servers (8.8.8.8, 8.8.4.4) on NAT interface.
+
+SOC relevance:
+Domain-joined systems may require DNS overrides for external access during investigations.
+
