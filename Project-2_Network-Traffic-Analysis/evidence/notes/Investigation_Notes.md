@@ -26,4 +26,8 @@ Benign / Suspicious / Confirmed Malicious
 
 ## Lessons Learned
 
+## Lab Roles
+- Victim: Windows VM
+- Sensor: Ubuntu Linux VM (Zeek, Suricata, Wireshark)
+- Attacker: Kali Linux VM
 
