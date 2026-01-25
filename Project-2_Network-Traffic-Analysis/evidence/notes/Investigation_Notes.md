@@ -27,13 +27,6 @@ Benign / Suspicious / Confirmed Malicious
 ## Lessons Learned
 
 ## Lab Roles
-- Victim: Windows VM
-- Sensor: Ubuntu Linux VM (Zeek, Suricata, Wireshark)
-- Attacker: Kali Linux VM
-| Role     | VM                  | Purpose                                 |
-| -------- | ------------------- | --------------------------------------- |
-| Victim   | Windows 10 / Server | Generates normal and suspicious traffic   |
-| Sensor   | Linux (Ubuntu)      | Captures and analyzes network traffic     |
-| Attacker | Kali Linux (later)  | Generates controlled suspicious traffic |
-
-
+- Victim: Windows VM/ Server: Generates normal and suspicious traffic
+- Sensor: Ubuntu Linux VM (Zeek, Suricata, Wireshark):   Captures and analyzes network traffic 
+- Attacker: Kali Linux VM :  Generates controlled suspicious traffic
