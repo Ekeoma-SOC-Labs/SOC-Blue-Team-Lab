@@ -81,3 +81,10 @@ Domain-joined systems may require DNS overrides for external access during inves
 
 Outcome:
 Clean baseline traffic successfully captured after resolving NAT and DNS issues.
+step 4.2
+Zeek installed via official OpenSUSE repository.
+Binary verified using /opt/zeek/bin/zeek --version (v8.1.0).
+
+Baseline PCAP successfully parsed with Zeek v8.1.0.
+Generated core logs: conn.log, dhcp.log, weird.log.
+Checksum offloading warning observed (expected in VM environments).
