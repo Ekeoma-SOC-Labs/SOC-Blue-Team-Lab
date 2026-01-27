@@ -69,3 +69,15 @@ Manually set DNS servers (8.8.8.8, 8.8.4.4) on NAT interface.
 SOC relevance:
 Domain-joined systems may require DNS overrides for external access during investigations.
 
+## Step 3 – Baseline Traffic Capture (Final)
+
+- Capture Interface: enp0s8
+- Capture Tool: tcpdump
+- DNS Status: External DNS (8.8.8.8)
+- Traffic Observed:
+  - DNS queries (google.com, wikipedia.org)
+  - HTTPS traffic (Wikipedia, Microsoft)
+- PCAP File: baseline_lab_traffic.pcap
+
+Outcome:
+Clean baseline traffic successfully captured after resolving NAT and DNS issues.
