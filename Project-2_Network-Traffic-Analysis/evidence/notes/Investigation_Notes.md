@@ -88,3 +88,21 @@ Binary verified using /opt/zeek/bin/zeek --version (v8.1.0).
 Baseline PCAP successfully parsed with Zeek v8.1.0.
 Generated core logs: conn.log, dhcp.log, weird.log.
 Checksum offloading warning observed (expected in VM environments).
+
+## Step 4.4.2 – Zeek Baseline Analysis (Offline)
+
+Zeek was executed in offline mode against a freshly captured baseline PCAP 
+(baseline_day2.pcap).
+
+Command used:
+/opt/zeek/bin/zeek -r /home/splunkadmin/baseline_day2.pcap
+
+Outcome:
+Zeek successfully parsed the PCAP and generated structured network telemetry 
+including conn.log, dhcp.log, and weird.log.
+
+A checksum offloading warning was observed, which is expected in virtualized 
+environments and does not affect baseline analysis validity.
+
+Status: Completed and frozen.
+
