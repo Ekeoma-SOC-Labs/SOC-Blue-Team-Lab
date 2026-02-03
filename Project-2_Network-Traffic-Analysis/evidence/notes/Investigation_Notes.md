@@ -716,3 +716,161 @@ Observation:
 No high-count multi-port targeting detected.
 Traffic pattern consistent with baseline service communication.
 
+## STEP 4.10 — Detect Timing Pattern Repetition
+
+### Command Used
+cat conn.log | grep -v '^#' | awk '{print $3, $5, $9}' | sort | uniq -c | sort -nr | head
+
+### Command Meaning
+Reads Zeek connection log, removes header lines, extracts source IP, destination IP, and duration, groups repeated timing patterns, and shows the most frequent ones.
+
+### Why This Matters (SOC Context)
+Timing patterns are important because attackers can encrypt payload content but cannot easily hide timing behavior.
+
+### Analyst Observation
+Repeated duration values were observed between the same source and destination hosts.
+
+### Analyst Interpretation
+This may indicate beaconing malware or scheduled automated communication such as C2 check-ins.
+
+### Evidence
+Screenshot taken — timing pattern frequency output displayed.
+## STEP 4.11 — Identify Top Talker Pairs by Frequency
+
+### Command Used
+cat conn.log | grep -v '^#' | awk '{print $3, $5, $6}' | sort | uniq -c | sort -nr | head
+
+### Command Meaning
+Reads Zeek connection log, removes header lines, extracts source IP, destination IP, and destination port, then counts how often each pair appears and shows the highest frequency pairs.
+
+### Why This Matters (SOC Context)
+Repeated communication pairs reveal behavior clusters and service hubs. High-frequency pairs may indicate beaconing, C2 check-ins, service chatter, or lateral movement patterns.
+
+### Analyst Observation
+Connection pair 192.168.56.1 → 192.168.56.20 on port 9997 appears most frequently.
+
+### Analyst Interpretation
+This is consistent with expected baseline lab service communication (Splunk ingestion port).
+
+### Evidence
+Screenshot taken — top talker pair frequency output displayed.
+## Step 4.13 — Connection State Pattern Analysis
+
+### Command Used
+cat conn.log | grep -v '^#' | awk '{print $12}' | sort | uniq -c | sort -nr
+
+### Command Meaning
+Reads Zeek conn.log, removes header lines, extracts connection state field, counts frequency of each state, and sorts results by occurrence.
+
+### Why This Matters for SOC
+Connection state reveals how sessions end. Large numbers of incomplete or failed states may indicate scanning, probing, blocked ports, or unstable connections.
+
+### Result Summary
+SH = 28
+S0 = 28
+OTH = 4
+SHR = 1
+
+### SOC Interpretation
+High S0 values indicate many unanswered SYN attempts, which may suggest scanning or unreachable services. In this baseline lab context, this likely reflects normal VM service chatter but should be monitored in real environments.
+
+### Evidence
+Screenshot: step-4-13-1-conn_state-frequency.png
+## Step 4.13.2 — Source Host Generating Failed SYN Connections (S0)
+
+### Command Used
+cat conn.log | grep -v '^#' | awk '$12=="S0" {print $3}' | sort | uniq -c | sort -nr
+
+### Command Meaning
+Filters connection records with S0 state and counts which source IP generated the failed SYN attempts.
+
+### SOC Purpose
+Helps identify hosts performing scanning, probing, or failed connection attempts — useful for detecting reconnaissance behavior.
+
+### Result
+192.168.56.1 generated 28 S0 connections.
+
+### Interpretation
+Likely infrastructure or baseline service behavior in the lab network. No anomaly indicated.
+
+### Evidence
+Screenshot: step-4-13-2-s0-source-ip.png
+## Step 4.13.3 — S0 Target Destination Analysis
+
+### Command Used
+cat conn.log | grep -v '^#' | awk '$12=="S0" {print $5}' | sort | uniq -c | sort -nr
+
+### Command Meaning
+Filters Zeek connection logs for S0 (failed SYN) states and counts destination IPs that received failed connection attempts.
+
+### SOC Purpose
+Identifies scan targets, unreachable services, and reconnaissance focus points.
+
+### Result
+28 192.168.56.20
+
+### Interpretation
+All failed connection attempts were directed to 192.168.56.20.  
+This indicates repeated connection attempts to a non-responding or closed service port.  
+In this lab context, it aligns with baseline service behavior toward the Splunk receiver port rather than malicious scanning.
+
+### Evidence
+Screenshot: step-4-13-3-s0-target-ip.png
+## STEP 4.14 — Duration Pattern Clustering
+
+### Command Used
+cat conn.log | grep -v '^#' | awk '{print $9}' | sort -n | uniq -c | sort -nr | head
+
+### Command Meaning
+Extracts connection duration values from Zeek conn.log and counts repeated timing patterns.
+
+### SOC Purpose
+Timing patterns help detect beaconing and automated communications because attackers cannot easily hide timing behavior even when payload is encrypted.
+
+### Analyst Observation
+Duration values show mostly single occurrences with no strong repetition clusters.
+
+### Analyst Interpretation
+No clear beaconing or automated C2 timing pattern observed in baseline traffic.
+
+### Evidence
+Screenshot: step-4-14-1-duration-cluster.png
+## STEP 4.15.1 — Largest Upload Sessions (orig_bytes)
+
+### Command Used
+cat conn.log | grep -v '^#' | awk '{print $10, $3, $5, $6}' | sort -nr | head
+
+### Command Meaning
+Extracts orig_bytes (bytes sent by the initiator) alongside source IP, destination IP, and destination port, then sorts descending to identify the largest upload sessions.
+
+### SOC Purpose
+Helps detect possible data exfiltration, abnormal uploads, or unusually large outbound transfers.
+
+### Analyst Observation
+Top upload sessions are dominated by traffic from 192.168.56.1 to 192.168.56.20 over destination port 9997.
+Highest observed orig_bytes value: 22045 bytes.
+
+### Analyst Interpretation
+This pattern is consistent with baseline service communication in this lab (repeated traffic to a known service port). No clear evidence of abnormal upload or exfiltration behavior in this baseline dataset.
+
+### Evidence
+Screenshot: step-4-15-1-largest-upload.png
+## STEP 4.15.2 — Largest Response Sessions (resp_bytes)
+
+### Command Used
+cat conn.log | grep -v '^#' | awk '{print $11, $3, $5, $6}' | sort -nr | head
+
+### Command Meaning
+Extracts resp_bytes (bytes returned by responder) and sorts descending to identify largest download sessions.
+
+### SOC Purpose
+Detects payload delivery, malware downloads, and abnormal response-heavy sessions.
+
+### Analyst Observation
+Top response byte values are very small and mostly zero. Observed traffic is limited to DHCP, ICMP, and baseline service chatter. No large response transfers detected.
+
+### Analyst Interpretation
+Baseline traffic shows no evidence of payload delivery or abnormal download behavior. Response sizes are consistent with normal lab service communication.
+
+### Evidence
+Screenshot: step-4-15-2-largest-response.png
