@@ -874,3 +874,28 @@ Baseline traffic shows no evidence of payload delivery or abnormal download beha
 
 ### Evidence
 Screenshot: step-4-15-2-largest-response.png
+
+## Step 4.16 — Baseline Summary Documentation (nano report)
+
+### Command Used
+nano baseline_summary.md
+
+### Command Meaning
+Opens (or creates) the baseline_summary.md file in nano text editor to document baseline traffic findings in a structured SOC report format.
+
+### SOC Purpose
+SOC analysts must convert raw packet/log evidence into a written baseline summary that can be referenced later to detect anomalies and support decision-making.
+
+### Analyst Observation
+A baseline summary report was written manually in baseline_summary.md, including:
+- capture context
+- key baseline findings (host pairs, port 9997 service behavior, conn_state patterns)
+- analyst conclusion for baseline normal behavior
+
+### Analyst Interpretation
+The baseline report serves as the official reference point for comparison when we capture and analyze malicious traffic in Phase B.
+
+### Evidence
+Screenshot: step-4-16-final-baseline-summary.png
+File created: baseline_summary.md
+
