@@ -131,7 +131,6 @@ SOC relevance:
 Verifying log generation ensures that analysis is performed on valid evidence
 and prevents false assumptions during incident investigation.
 
-Status: Completed and frozen.
 ## Step 4.4.4 – Zeek Log Identification
 
 Purpose:
@@ -157,7 +156,6 @@ conn.log is typically the first log analyzed during investigations because
 it provides a complete overview of network communications and helps identify
 suspicious or anomalous connections.
 
-Status: Completed and frozen.
 ## Step 4.4.5 – Baseline Sanity Check (conn.log)
 
 Purpose:
@@ -180,7 +178,6 @@ SOC relevance:
 A sanity check ensures the baseline is valid before deeper analysis or
 comparison with malicious traffic.
 
-Status: Completed and frozen.
 ## Step 4.4 – Zeek Baseline Processing (Closed)
 
 All sub-steps under Step 4.4 were completed successfully, including offline
@@ -190,7 +187,6 @@ checks.
 The baseline was confirmed to represent normal lab network behavior and is
 approved for use as a comparison reference in subsequent analysis phases.
 
-Status: Completed and frozen.
 ### Zeek Log Overview (Baseline)
 
 - conn.log: Records all network connections and is the primary log for SOC investigations.
@@ -230,14 +226,11 @@ These fields form the foundation of network-based detection and investigation.
 Understanding them allows analysts to identify anomalies, lateral movement,
 scanning, and data exfiltration patterns.
 
-Status: In progress.
 ### Step 4.5 (Part 1) – conn.log Core Fields
 
 The core fields of conn.log were reviewed and mapped to SOC investigation
 use cases. The analyst demonstrated understanding of connection initiation
 (id.orig_h / id.orig_p) and data transfer analysis (orig_bytes / resp_bytes).
-
-Status: Completed and frozen.
 
 ## Step 4.5 (Part 2) – Connection Behavior Analysis
 
@@ -281,8 +274,6 @@ Key concepts:
 Learning validation:
 - Analyst correctly identified SF as normal baseline state
 - Analyst recognized repeating durations as a suspicious automation pattern
-
-Status: Completed and frozen.
 
 ### Step 4.5 (Part 3) – Byte Direction Analysis
 
@@ -348,7 +339,6 @@ SOC analysts must translate raw log rows into behavioral statements to support:
 ### Evidence
 conn.log entry reviewed and interpreted manually.
 
-Status: Completed and frozen.
 ## Step 4.6 — Source Connection Frequency Analysis
 
 ### Objective
@@ -414,7 +404,6 @@ Destination concentration helps detect:
 - data exfiltration endpoints
 
 Observed pattern matches expected baseline service communication.
-Step frozen.
 ### Step 4.6.3 — Port Frequency Analysis
 
 Command:
@@ -436,8 +425,6 @@ Other observed ports:
 
 No suspicious port concentration observed.
 
-Step frozen.
-
 ### Step 4.6.4 — Connection Duration Analysis
 
 Command:
@@ -458,7 +445,6 @@ Duration analysis helps detect:
 - long data transfers (possible exfiltration)
 - abnormal persistence sessions
 
-Step frozen.
 ### Step 4.6.5.1 — Top orig_bytes Connections
 
 Command:
@@ -476,7 +462,6 @@ Pattern matches Splunk ingestion traffic in the lab baseline.
 Risk Note:
 In real SOC environments, high orig_bytes with low response bytes on unknown ports may indicate data exfiltration.
 
-Step frozen.
 ## Step 4.6.5.2 — Detect Response-Heavy Connections (Possible C2 / Beacon Replies)
 
 Command:
@@ -497,7 +482,7 @@ This supports that baseline traffic is normal and not download/payload dominated
 
 Evidence:
 Screenshot saved as step4_6_5_2_response_heavy_none.png
-Status: Completed and frozen.
+
 ## Step 4.6.5.3 — Very Short Connection Detection
 
 Command:
@@ -523,8 +508,6 @@ No scanning burst pattern observed.
 Evidence:
 step4_6_5_3_short_duration_connections.png
 
-Status:
-Completed and frozen.
 ## Step 4.7.1 — Source to Field Repetition Pattern
 
 Command Used:
@@ -549,14 +532,9 @@ Used to detect repeated behavioral patterns which may indicate:
 Result Summary:
 Repeated patterns observed — consistent with baseline automated service communication.
 
-Interview Insight:
-Repeated same-port traffic is not always malicious — it may indicate legitimate services such as log forwarding or monitoring agents.
-
 Evidence:
 step4_7_1_source_port_repetition.png
 
-Status:
-Completed and Frozen
 ## Step 4.7.2 — Service Baseline Distribution
 
 Command Used:
