@@ -1,87 +1,95 @@
-# Investigation Notes – Project 2
+# Investigation Notes – Project 2 (SOC Blue Team Lab)
 
 ## Case Information
 - Analyst: Ekeoma Eneogwe
-- Date:
-- Project: Network Traffic Analysis
+- Date: 8/02/2026
+- Project: SOC Blue Team Lab — Project 2. Network Traffic Analysis
+- Case Type: Controlled Malicious Traffic Simulation and Behavioral Detection
+
+---
+
+## Environment Overview
+
+This lab simulates a small SOC investigation workflow using controlled traffic generation and offline network telemetry analysis.
+
+Two datasets were analyzed:
+
+- Baseline traffic capture (normal behavior)
+- Phase B simulated malicious traffic (automated ICMP burst)
+
+All conclusions are evidence-based and derived from Zeek structured logs.
+
+---
 
 ## Lab Machines
-- Windows Victim:
-- Sensor VM:
-- Attacker (if any):
+
+- Windows 10 VM — Traffic generator (simulated attacker behavior)
+- Ubuntu VM — Zeek network sensor and analysis platform
+- Host system — VirtualBox hypervisor
+
+---
+
+## Actual Lab Roles Used
+
+- Traffic Generator: Windows 10 VM (used built-in ping to simulate automated traffic)
+- Sensor: Ubuntu Zeek VM (tcpdump capture + Zeek replay + log analysis)
+- No Kali Linux tools were used in this phase
+- No Suricata/Wireshark analysis used in this phase
+
+---
 
 ## Capture Strategy
-(Where traffic was captured and why)
 
-## Findings
-(To be filled step by step)
+Traffic was captured using tcpdump on the Zeek sensor VM using the NAT interface (enp0s3).
 
-## Indicators of Compromise (IOCs)
-- Domains:
-- IPs:
-- URIs:
+Reason:
+Both the Windows VM and Zeek VM shared NAT network space, ensuring packet visibility and preventing empty capture files.
 
-## Outcome
-Benign / Suspicious / Confirmed Malicious
+Workflow used:
 
-## Lessons Learned
+1. Capture traffic to PCAP with tcpdump
+2. Preserve PCAP as evidence artifact
+3. Replay PCAP offline with Zeek
+4. Analyze structured Zeek logs (conn.log and related logs)
 
-## Lab Roles
-- Victim: Windows VM/ Server: Generates normal and suspicious traffic
-- Sensor: Ubuntu Linux VM (Zeek, Suricata, Wireshark):   Captures and analyzes network traffic 
-- Attacker: Kali Linux VM :  Generates controlled suspicious traffic
+This approach ensures repeatability and protects evidence integrity.
+
+---
+
+## Zeek Log Location Note
+
+Zeek was run in offline replay mode using the `-r` flag.
+In this mode, Zeek writes logs to the current working directory where the command is executed (not the default live log directory).
+
+Log location was verified before analysis.
 
 
+## Network Design Adjustment (Final)
 
-Network design adjustment:
-Removed secondary NIC from Windows VM after driver incompatibility with virtio-net.
+An initial attempt was made to use a second Host-Only adapter on the Windows VM, but the virtio-net driver was not recognized by Windows.
 
-Final design:
-- Windows Victim: single NIC (NAT)
-- Ubuntu-Splunk Sensor: host-only NIC in promiscuous mode
+To maintain stability and avoid driver dependency issues, Phase B proceeded using NAT networking.
 
-Rationale:
-Simplified architecture to ensure stable internet access and reliable traffic capture without introducing driver dependencies.
+Final working design for capture and replay:
 
-SOC relevance:
-Stability and observability take priority over unnecessary architectural complexity.
+- Windows VM: single NIC (NAT)
+- Zeek Sensor VM: dual NIC present, but capture performed on NAT interface (enp0s3)
 
-Network design adjustment:
-Removed secondary NIC from Windows VM after driver incompatibility with virtio-net.
-
-Final design:
-- Windows Victim: single NIC (NAT)
-- Ubuntu-Splunk Sensor: host-only NIC in promiscuous mode
-
-Rationale:
-Simplified architecture to ensure stable internet access and reliable traffic capture without introducing driver dependencies.
-
-SOC relevance:
-Stability and observability take priority over unnecessary architectural complexity.
-
-STE 3
-DNS issue encountered:
-Windows VM was using internal DC DNS, which cannot resolve external domains.
-
-Resolution:
-Manually set DNS servers (8.8.8.8, 8.8.4.4) on NAT interface.
-
-SOC relevance:
-Domain-joined systems may require DNS overrides for external access during investigations.
-
+SOC note:
+Validated visibility and reproducibility are more important than architectural complexity in controlled investigations.
 ## Step 3 – Baseline Traffic Capture (Final)
 
-- Capture Interface: enp0s8
+- Capture Interface: enp0s3 (NAT)
 - Capture Tool: tcpdump
-- DNS Status: External DNS (8.8.8.8)
+- DNS Status: External DNS (8.8.8.8 / 8.8.4.4) configured on NAT interface where required
 - Traffic Observed:
-  - DNS queries (google.com, wikipedia.org)
-  - HTTPS traffic (Wikipedia, Microsoft)
+  - DNS queries (e.g., google.com, wikipedia.org)
+  - HTTPS traffic (e.g., Wikipedia, Microsoft)
 - PCAP File: baseline_lab_traffic.pcap
 
 Outcome:
-Clean baseline traffic successfully captured after resolving NAT and DNS issues.
-step 4.2
+Clean baseline traffic successfully captured on the NAT interface after resolving DNS configuration issues.
+## step 4.2
 Zeek installed via official OpenSUSE repository.
 Binary verified using /opt/zeek/bin/zeek --version (v8.1.0).
 
@@ -96,6 +104,11 @@ Zeek was executed in offline mode against a freshly captured baseline PCAP
 
 Command used:
 /opt/zeek/bin/zeek -r /home/splunkadmin/baseline_day2.pcap
+## Zeek Output Location Clarification (Offline Mode)
+
+Zeek was executed in offline PCAP replay mode using the -r flag.
+In this mode, Zeek writes output logs to the current working directory where the command is executed (not /opt/zeek/logs/current).
+
 ## Step 4.4.3 – Zeek Output Verification
 
 Purpose:
@@ -247,8 +260,6 @@ SOC interpretation:
 - Repeated S0 or REJ states may indicate scanning or probing
 - Long-lived connections may indicate tunneling or command-and-control
 - Duration patterns help distinguish normal activity from anomalies
-
-Status: In progress.
 ### Step 4.5 (Part 2) – Connection State & Duration
 
 Purpose:
@@ -272,56 +283,6 @@ Learning validation:
 - Analyst recognized repeating durations as a suspicious automation pattern
 
 Status: Completed and frozen.
-### Step 4.5 (Part 2) – Connection State & Duration
-
-Purpose:
-To understand how Zeek represents connection outcomes and behavior patterns
-using conn_state and duration fields.
-
-Command used:
-less conn.log
-
-Command explanation:
-- less opens the log file in read-only mode to safely review connection data.
-
-Key concepts:
-- conn_state indicates how a connection ended
-- SF represents normal successful connections
-- Repeated S0 or REJ patterns may indicate scanning
-- Duration patterns help detect beaconing and tunnels
-
-Learning validation:
-- Analyst correctly identified SF as normal baseline state
-- Analyst recognized repeating durations as a suspicious automation pattern
-
-Status: Completed and frozen.
-### Step 4.5 (Part 3) – Byte Direction Analysis
-
-Purpose:
-To understand traffic direction and volume using orig_bytes and resp_bytes
-fields in conn.log.
-
-Command used:
-less conn.log
-
-Command explanation:
-- less opens the log file safely in read-only mode for inspection.
-
-Key fields:
-- orig_bytes: Data sent by connection initiator
-- resp_bytes: Data sent by responder
-
-SOC interpretation patterns:
-- Small orig / large resp → normal browsing
-- Large orig / small resp → possible data exfiltration
-- Small both repeating → beaconing behavior
-- Balanced large flows → possible tunnels or shells
-
-SOC relevance:
-Byte direction analysis helps detect data theft and command-and-control
-behavior even when payloads are encrypted.
-
-Status: In progress.
 
 ### Step 4.5 (Part 3) – Byte Direction Analysis
 
@@ -349,7 +310,6 @@ SOC relevance:
 Byte direction analysis helps detect data theft and command-and-control
 behavior even when payloads are encrypted.
 
-Status: In progress.
 
 ## Step 4.5 — conn.log Row-Level SOC Interpretation
 
@@ -899,3 +859,445 @@ The baseline report serves as the official reference point for comparison when w
 Screenshot: step-4-16-final-baseline-summary.png
 File created: baseline_summary.md
 
+
+## PHASE B STEP B1 — Baseline PCAP Presence Check
+
+Verified packet capture files exist in working directory.
+
+Baseline replay evidence available for Zeek analysis comparison.
+
+PCAP replay workflow confirmed for Phase B simulation.
+## PHASE B STEP B2 — Malicious Simulation Folder Created
+
+Created dedicated directory for malicious traffic artifacts.
+
+This ensures separation between baseline telemetry and attack simulation evidence.
+
+Maintains investigation clarity and comparison integrity.
+
+### Directory existence verified via ls -ld command.
+## PHASE B STEP B3 — Entered Malicious Simulation Workspace
+
+Changed working directory to phaseB_malicious.
+
+All attack simulation artifacts will be generated here to preserve baseline separation.
+## PHASE B STEP B4 — Packet Capture Tool Verification
+
+Verified tcpdump is installed and accessible.
+
+Tool is required for generating malicious traffic PCAP for replay analysis.
+## PHASE B STEP B5 — Network Interface Identification
+
+Listed network interfaces using ip addr.
+
+Identifying the active interface connected to the lab subnet is required before packet capture.
+## PHASE B STEP B7 — Tcpdump Dry Run Validation
+
+Executed limited packet capture using packet count restriction.
+
+Confirmed interface visibility and capture permissions without generating full capture files.
+## STEP B7 — Tcpdump Dry-Run Capture Validation
+
+### Command Used
+sudo tcpdump -i enp0s3 -c 3
+
+### Command Meaning
+Runs tcpdump with administrative privileges on interface enp0s3 and stops automatically after capturing three packets.
+
+### SOC Purpose
+Validates that packet capture permissions and interface visibility are functioning before starting a full malicious traffic capture.
+
+### Analyst Observation
+Tcpdump successfully started and captured three packets consisting of IPv6 router advertisement and multicast listener report traffic.
+
+### Analyst Interpretation
+Capture engine and interface access are working correctly. Background network packets satisfied the capture count, confirming readiness for controlled malicious traffic capture.
+
+### Evidence
+Screenshot: STEP-B7C-dryrun-success.png
+## STEP B8 — Malicious Traffic Capture Started
+
+### Command Used
+sudo tcpdump -i enp0s3 -w phaseB_attack.pcap
+
+### Command Meaning
+Starts packet capture on interface enp0s3 and writes all observed packets to phaseB_attack.pcap file.
+
+### SOC Purpose
+Collects malicious simulation traffic into a dedicated PCAP file for later Zeek replay and detection validation.
+
+### Analyst Observation
+Tcpdump started successfully and is actively listening on the NAT interface.
+
+### Analyst Interpretation
+Sensor is now recording attack simulation traffic for Phase B dataset creation.
+
+### Evidence
+Screenshot: STEP-B8-capture-started.png
+## STEP B9 — Controlled Attack Traffic Generation
+
+### Command Used
+ping 10.0.2.15 -n 20
+
+### Command Meaning
+Sends 20 ICMP echo request packets from the attacker Windows VM to the Zeek sensor NAT interface.
+
+### SOC Purpose
+Generates a controlled burst traffic pattern to simulate detectable reconnaissance-style behavior and produce identifiable packet sequences in capture logs.
+
+### Analyst Observation
+Ping command executed successfully with 20 packets sent and 20 replies received, with zero packet loss and consistent low latency.
+
+### Analyst Interpretation
+Controlled ICMP burst traffic successfully generated and should be present in the Phase B packet capture file for later Zeek replay and detection comparison.
+
+### Evidence
+Screenshot: STEP-B9-attack-ping.png
+## STEP B10 — Malicious Traffic Capture Stopped
+
+### Command Used
+CTRL + C (interrupt signal to tcpdump)
+
+### Command Meaning
+Stops the running tcpdump capture process and safely closes the packet capture file.
+
+### SOC Purpose
+Ensures the capture file is properly finalized and prevents corruption before forensic replay and analysis.
+
+### Analyst Observation
+Tcpdump stopped successfully and reported 9 packets captured with zero packets dropped by the kernel.
+
+### Analyst Interpretation
+Malicious simulation traffic capture completed successfully and the Phase B PCAP file is ready for Zeek replay analysis.
+
+### Evidence
+Screenshot: STEP-B10-capture-stopped.png
+## STEP B11 — Malicious PCAP Evidence Verification
+
+### Command Used
+ls -lh phaseB_attack.pcap
+
+### Command Meaning
+Lists the captured Phase B packet capture file with size, timestamp, and permissions.
+
+### SOC Purpose
+Confirms that malicious simulation traffic was successfully written to a PCAP evidence file before forensic replay analysis.
+
+### Analyst Observation
+phaseB_attack.pcap exists with non-zero file size (1.1K) and recent timestamp.
+
+### Analyst Interpretation
+Attack simulation capture file is valid and ready for Zeek replay processing.
+
+### Evidence
+Screenshot: STEP-B11-pcap-verify.png
+## STEP B12 — Zeek Replay Output Folder Creation
+
+### Command Used
+mkdir -p zeek_phaseB_logs
+
+### Command Meaning
+Creates a dedicated directory for Zeek Phase B replay logs without error if the directory already exists.
+
+### SOC Purpose
+Maintains strict separation between baseline logs and malicious replay logs for clean comparative analysis.
+
+### Analyst Observation
+Command executed without error and directory prompt returned normally.
+
+### Analyst Interpretation
+Replay log destination folder is ready and evidence separation controls are maintained.
+
+### Evidence
+Screenshot: STEP-B12-zeek-output-folder.png
+## STEP B13 — Zeek Replay of Phase B Attack PCAP
+
+### Command Used
+/opt/zeek/bin/zeek -r phaseB_attack.pcap
+
+### Command Meaning
+Runs Zeek in offline replay mode to process the Phase B malicious traffic PCAP file into structured Zeek logs.
+
+### SOC Purpose
+Transforms raw packet data into structured, queryable security telemetry for detection validation and baseline-versus-attack comparison.
+
+### Analyst Observation
+Command executed successfully and returned to prompt without errors, indicating replay completed.
+
+### Analyst Interpretation
+Phase B malicious traffic has been parsed into Zeek log format and is ready for structured SOC analysis.
+
+### Evidence
+Screenshot: STEP-B13-zeek-replay-run.png
+## STEP B14 — Zeek Log Generation Verification
+
+### Command Used
+ls -lh *.log
+
+### Command Meaning
+Lists Zeek-generated log files with size and timestamps after PCAP replay.
+
+### SOC Purpose
+Confirms that Zeek replay successfully produced structured telemetry artifacts for analysis.
+
+### Analyst Observation
+conn.log and packet_filter.log were generated. dns.log was not present.
+
+### Analyst Interpretation
+Replay traffic consisted of connection-level activity without DNS queries, consistent with ICMP ping simulation traffic.
+
+### Evidence
+Screenshot: STEP-B14-zeek-logs-present.png
+## Phase B Replay Output Location Note
+
+A separate folder for Phase B logs was created for separation purposes.
+However, Zeek replay logs were generated in the active working directory during execution.
+
+Observed Phase B logs:
+- conn.log
+- packet_filter.log
+
+Log locations were verified before analysis to avoid baseline and attack dataset mixing.
+
+
+SOC relevance:
+Log location must be explicitly documented to preserve evidence traceability and prevent baseline/attack log mixing.
+
+## STEP B15 — Phase B conn.log Inspection
+
+### Command Used
+less conn.log
+
+### Command Meaning
+Opened Zeek connection log in read-only pager for structured connection review.
+
+### SOC Purpose
+Inspect connection-level telemetry generated from malicious traffic replay to identify behavioral patterns.
+
+### Analyst Observation
+Entries show ICMP protocol, repeated source/destination pairs, OTH connection states, and identical response byte sizes (~40 bytes).
+
+### Analyst Interpretation
+Traffic pattern is generated and repetitive, consistent with scripted ICMP burst activity rather than baseline user behavior.
+
+### Evidence
+Screenshot: STEP-B15-connlog-view.png
+
+## STEP B16 — Protocol Frequency Pattern Count
+
+### Command Used
+cat conn.log | grep -v '^#' | awk '{print $7}' | sort | uniq -c | sort -nr
+
+### Command Meaning
+Extracts protocol field from Zeek conn.log records and counts frequency of each protocol type.
+
+### SOC Purpose
+Measures protocol distribution to identify dominant behavior patterns that may indicate automated or scripted activity.
+
+### Analyst Observation
+Output shows only one protocol present with count value: ICMP (6 occurrences).
+
+### Analyst Interpretation
+Traffic shows single-protocol dominance consistent with scripted ICMP burst simulation rather than normal multi-protocol user behavior.
+
+### Evidence
+Screenshot: STEP-B16-protocol-count.png
+## STEP B17 — Destination Frequency Pattern Count
+
+### Command Used
+cat conn.log | grep -v '^#' | awk '{print $5}' | sort | uniq -c | sort -nr
+
+### Command Meaning
+Extracts destination IP field from Zeek conn.log and counts frequency of each destination value.
+
+### SOC Purpose
+Identifies repeated targeting patterns that may indicate scripted probing or automated traffic behavior.
+
+### Analyst Observation
+Two IPv6 multicast destinations observed with equal repetition counts (3 each): ff02::16 and ff02::1.
+
+### Analyst Interpretation
+Traffic shows repeated targeting of multicast control addresses consistent with ICMPv6 control burst behavior rather than diverse user-driven destinations.
+
+### Evidence
+Screenshot: STEP-B17-dest-count.png
+## STEP B18 — Duration Pattern Clustering
+
+### Command Used
+cat conn.log | grep -v '^#' | awk '{print $9}' | sort -n | uniq -c | sort -nr
+
+### Command Meaning
+Extracts connection duration values from Zeek conn.log and counts repeated timing patterns.
+
+### SOC Purpose
+Timing repetition analysis helps detect automated or scripted traffic because machine-generated communication often shows consistent duration patterns.
+
+### Analyst Observation
+Three records show undefined duration (“-”) and remaining durations are very short and non-diverse.
+
+### Analyst Interpretation
+Traffic shows short-lived and control-style connection timing consistent with automated ICMP burst behavior rather than user-driven sessions.
+
+### Evidence
+Screenshot: STEP-B18-duration-cluster.png
+## STEP B19 — Baseline vs Attack Protocol Contrast
+
+### Command Used
+Reference comparison — no new command executed
+
+### Command Meaning
+Compared previously recorded baseline protocol distribution with Phase B protocol frequency results.
+
+### SOC Purpose
+Contrast analysis identifies behavioral deviation signals between normal and suspicious datasets.
+
+### Analyst Observation
+Baseline traffic showed multi-protocol diversity, while Phase B replay shows ICMP-only dominance.
+
+### Analyst Interpretation
+Protocol diversity collapse is a strong indicator of scripted or generated traffic rather than user behavior.
+
+### Evidence
+Baseline protocol count screenshot vs STEP-B16-protocol-count.png
+## STEP B20 — Unique Destination Diversity Count
+
+### Command Used
+cat conn.log | grep -v '^#' | awk '{print $5}' | sort | uniq | wc -l
+
+### Command Meaning
+Counts the number of unique destination addresses present in the Zeek conn.log dataset.
+
+### SOC Purpose
+Destination diversity measurement helps distinguish user-driven multi-target behavior from scripted or automated repeated targeting.
+
+### Analyst Observation
+Only two unique destination addresses observed in Phase B traffic.
+
+### Analyst Interpretation
+Very low destination diversity combined with repeated connections supports automated or control-style traffic pattern rather than normal user behavior.
+
+### Evidence
+Screenshot: STEP-B20-unique-dest-count.png
+## STEP B21 — Baseline vs Phase B Protocol Metric Comparison
+
+### Command Used
+Reference comparison using prior metric outputs (no new command)
+
+### Command Meaning
+Compared previously computed protocol frequency metrics between baseline dataset and Phase B attack dataset.
+
+### SOC Purpose
+Protocol distribution contrast helps detect behavioral deviation between normal and automated traffic patterns.
+
+### Analyst Observation
+Baseline dataset showed multi-protocol distribution (TCP and service-mapped traffic present), while Phase B dataset shows ICMP-only dominance.
+
+### Analyst Interpretation
+Protocol diversity collapse in Phase B indicates constrained, automated traffic behavior unlike baseline user-driven activity.
+
+### Evidence
+Baseline protocol count screenshot vs STEP-B16-protocol-count.png
+## STEP B22 — Baseline vs Phase B Destination Diversity Comparison
+
+### Command Used
+Reference comparison using prior metric outputs (no new command)
+
+### Command Meaning
+Compared previously measured unique destination counts between baseline dataset and Phase B dataset.
+
+### SOC Purpose
+Destination diversity contrast helps identify automated repeated targeting versus user-driven multi-destination behavior.
+
+### Analyst Observation
+Baseline dataset showed multiple distinct destination hosts, while Phase B dataset shows only two multicast control destinations.
+
+### Analyst Interpretation
+Destination diversity collapse in Phase B supports automated control-style or scripted traffic behavior rather than normal user activity.
+
+### Evidence
+Baseline destination screenshots vs STEP-B20-unique-dest-count.png
+## STEP B23 — Baseline vs Phase B Duration Pattern Comparison
+
+### Command Used
+Reference comparison using prior metric outputs (no new command)
+
+### Command Meaning
+Compared previously computed duration clustering metrics between baseline and Phase B datasets.
+
+### SOC Purpose
+Timing pattern contrast helps detect automated scripted behavior versus natural user-driven variability.
+
+### Analyst Observation
+Baseline durations showed mostly unique timing values, while Phase B durations show clustered short-lived and undefined duration entries.
+
+### Analyst Interpretation
+Duration clustering in Phase B indicates automated or control-style burst behavior unlike baseline user activity timing spread.
+
+### Evidence
+step-4-14-1-duration-cluster.png vs STEP-B18-duration-cluster.png
+## STEP B24 — Multi-Signal Detection Synthesis
+
+### Command Used
+Synthesis step — no new command executed
+
+### Command Meaning
+Combined multiple previously measured behavioral metrics into a detection conclusion.
+
+### SOC Purpose
+Multi-signal correlation increases detection confidence and reduces false positives compared to single-metric alerts.
+
+### Analyst Observation
+Phase B dataset shows protocol collapse (ICMP only), low destination diversity, repeated targets, clustered short durations, and uniform response sizes.
+
+### Analyst Interpretation
+Combined behavioral signals strongly indicate automated or scripted traffic generation rather than baseline user behavior.
+
+---
+
+## Indicators Observed (Simulation Context)
+
+Because this was a controlled lab simulation, the following are behavioral indicators rather than real threat IOCs:
+
+- Protocol pattern: ICMP burst activity
+- Behavior: Repeated echo requests with uniform timing
+- Destination pattern: Very low diversity
+- IPv6 multicast destinations observed: ff02::1, ff02::16
+- Signal type: Automated traffic generation pattern
+
+These are recorded as behavioral indicators for detection validation, not external threat intelligence IOCs.
+
+---
+
+## Outcome
+
+Confirmed simulated malicious behavior pattern detected.
+
+Phase B dataset shows automated traffic characteristics including:
+
+- protocol diversity collapse
+- destination diversity collapse
+- tight duration clustering
+- repeated target behavior
+- uniform response size patterns
+
+Detection confidence: High (multi-signal correlation across independent metrics).
+
+---
+
+## Lessons Learned
+
+This investigation showed that strong detection decisions should be based on combined behavioral signals rather than single indicators.
+
+Key takeaways from this lab:
+
+- Always establish a clean baseline before calling traffic suspicious
+- Protocol diversity collapse is a strong automation signal
+- Timing clusters often reveal scripted behavior
+- Destination diversity is a reliable comparison metric
+- Offline PCAP replay with Zeek is effective for repeatable analysis
+- Step-by-step evidence validation reduces investigation errors
+- Clear investigation notes improve reproducibility and reporting quality
+
+
+### Evidence
+STEP-B16, STEP-B17, STEP-B18, STEP-B20 comparison screenshots
