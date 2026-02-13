@@ -77,5 +77,4 @@ Detection confidence: High (multi-metric behavioral correlation).
 
 ---
 
-## Project Structure
 
