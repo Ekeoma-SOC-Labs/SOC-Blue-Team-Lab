@@ -1,64 +1,33 @@
-# Setup Instructions for Project 3: Multi-Stage Attack Detection Lab
+# Lab Setup – Multi-Stage Attack Detection Lab
 
-## Prerequisites
-Before you begin the setup process, ensure you have the following prerequisites installed on your system:
-- Python 3.8 or higher
-- Docker
-- Docker Compose
-- Git
+## Host System
+HP Laptop running VirtualBox.
 
-## Step 1: Clone the Repository
-First, clone the repository to your local machine using the following command:
+## Virtual Machines
 
-```bash
-git clone https://github.com/Ekeoma-SOC-Labs/SOC-Blue-Team-Lab.git
-```
+- Kali Linux – Attacker machine
+- Windows 10 – Target workstation
+- Windows Server 2019 – Domain Controller
+- Ubuntu Server – Splunk SIEM
 
-Navigate to the project directory:
+## Network Configuration
 
-```bash
-cd SOC-Blue-Team-Lab/Project-3_Multi-Stage-Attack-Detection-Lab
-```
+All VMs connected using VirtualBox Internal Network to allow controlled communication and traffic monitoring.
 
-## Step 2: Set Up the Environment
-Set up your virtual environment to manage dependencies:
+## Monitoring Tools
 
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows use `venv\Scripts\activate`
-```
+- Splunk Enterprise – SIEM log analysis
+- Zeek – Network security monitoring
+- Wireshark – Packet analysis
 
-Install the required Python packages:
+## Offensive Environment
 
-```bash
-pip install -r requirements.txt
-```
+The attacker environment is Kali Linux which contains multiple security testing tools used across different stages of the attack simulation.
 
-## Step 3: Configure Docker
-Ensure Docker is running on your machine. You can test this by executing:
+Examples include:
 
-```bash
-docker --version
-```
-
-## Step 4: Build Docker Containers
-Use Docker Compose to build and run the containers:
-
-```bash
-docker-compose up --build
-```
-
-## Step 5: Access the Application
-After the build process completes, you can access the application in your web browser at:
-
-```
-http://localhost:5000
-```
-
-## Troubleshooting
-If you encounter issues during the setup, consider the following:
-- Ensure you have sufficient permissions to run Docker.
-- Check for any typos in the commands.
-
-## Conclusion
-You should now have the Multi-Stage Attack Detection Lab set up and running! Refer to the documentation for more specific usage instructions.
+- Nmap
+- Netdiscover
+- Hydra
+- Metasploit
+- SMB utilities
