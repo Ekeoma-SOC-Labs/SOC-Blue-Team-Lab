@@ -20,7 +20,21 @@ Analyst observation:
 This step represents attacker preparation before payload delivery.
 
 At this point, no evidence exists on the victim machine yet.
+### Step 2.2 — Investigation Notes
 
+Activity:
+Creation of a PowerShell payload on the Kali attacker machine.
+
+Evidence:
+Terminal output confirms the presence of:
+
+benign_initial_access.ps1
+
+Observation:
+Nano created an automatic backup file (.save).
+
+Analysis:
+This represents attacker payload preparation prior to delivery.
 
 Expected artifact:
 `C:\Temp\initial_access_marker.txt`
