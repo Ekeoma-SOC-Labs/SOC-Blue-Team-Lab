@@ -12,6 +12,22 @@ The planned simulation is:
 Expected artifact:
 
 `C:\Temp\initial_access_marker.txt`
+## Step 2.2 – Payload Preparation
+
+A PowerShell script was created on the Kali attacker machine.
+
+Script name:
+benign_initial_access.ps1
+
+Purpose:
+Simulate a payload that will later be delivered to the Windows victim.
+
+Script behavior:
+- create directory C:\Temp
+- create file initial_access_marker.txt
+- write marker message into the file
+
+This artifact will help the SOC analyst reconstruct the attack during investigation.
 
 Expected evidence sources:
 
