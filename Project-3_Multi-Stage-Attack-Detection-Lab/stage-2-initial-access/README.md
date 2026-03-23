@@ -28,7 +28,23 @@ Script behavior:
 - write marker message into the file
 
 This artifact will help the SOC analyst reconstruct the attack during investigation.
+### Step 2.2 — Payload Script Creation
 
+A PowerShell script was created on the Kali attacker machine.
+
+Commands executed:
+
+mkdir -p ~/project3_stage2  
+cd ~/project3_stage2  
+nano benign_initial_access.ps1
+
+The script will simulate a payload execution on the Windows victim by creating a benign artifact.
+
+Verification command:
+
+ls
+
+Evidence confirms the script file exists in the attacker staging directory.
 Expected evidence sources:
 
 - Windows endpoint activity
