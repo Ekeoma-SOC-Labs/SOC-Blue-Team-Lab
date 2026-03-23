@@ -35,6 +35,16 @@ Nano created an automatic backup file (.save).
 
 Analysis:
 This represents attacker payload preparation prior to delivery.
+## Troubleshooting T1 – VM Network Issue
+
+Observation:
+Windows 10 VM cannot access network.
+
+Impact:
+Victim cannot connect to attacker server.
+
+Action:
+Checking VirtualBox network configuration.
 
 Expected artifact:
 `C:\Temp\initial_access_marker.txt`
