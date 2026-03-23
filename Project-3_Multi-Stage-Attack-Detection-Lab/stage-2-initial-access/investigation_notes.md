@@ -45,6 +45,16 @@ Victim cannot connect to attacker server.
 
 Action:
 Checking VirtualBox network configuration.
+## Troubleshooting T1 – VM Network Issue
+
+Observation:
+Windows 10 VM cannot access network.
+
+Impact:
+Victim cannot connect to attacker server.
+
+Action:
+Checking VirtualBox network configuration.
 
 Expected artifact:
 `C:\Temp\initial_access_marker.txt`
@@ -57,3 +67,49 @@ Expected evidence:
 
 Analyst note:
 This is the planning step. No suspicious execution has occurred yet.
+## Troubleshooting T3 — Windows Network Address
+
+Command executed:
+ipconfig
+
+Purpose:
+Verify Windows received an IP address on the Host-Only network.
+
+Reason:
+Without a valid IP address, the victim machine cannot reach the attacker server.
+## Troubleshooting – Windows Network Connectivity
+
+Issue:
+Windows VM could not communicate with the Kali attacker machine.
+
+Observation:
+Initial ipconfig output showed incorrect host-only IP configuration.
+
+Resolution:
+The Windows Ethernet adapter was reset and DHCP renewed.
+
+Result:
+Windows received a valid host-only IP address.
+
+Victim IP: 192.168.56.102
+Subnet: 255.255.255.0
+
+Impact:
+The victim machine can now communicate with the attacker server on the isolated lab network.
+## Attacker Network Identification
+
+Command executed on Kali:
+
+ip a
+
+Observation:
+
+Two network interfaces were identified.
+
+eth0 – Host-Only network
+IP address: 192.168.56.106
+
+eth1 – NAT network
+IP address: 10.0.3.15
+
+The host-only network (192.168.56.0/24) is used for the attack simulation between Kali and the Windows victim.
