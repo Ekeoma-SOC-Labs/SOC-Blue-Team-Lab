@@ -45,6 +45,22 @@ Verification command:
 ls
 
 Evidence confirms the script file exists in the attacker staging directory.
+### Step 2.5 – Victim Accesses Attacker Server
+
+The Windows victim system accessed the attacker server hosted on the Kali machine.
+
+URL accessed:
+
+http://192.168.56.106:8080
+
+The page returned a directory listing showing the hosted payload.
+
+Files observed:
+
+- benign_initial_access.ps1
+- benign_initil_access.ps1.save
+
+This confirms that the victim successfully communicated with the attacker infrastructure.
 Expected evidence sources:
 
 - Windows endpoint activity
