@@ -116,7 +116,23 @@ and generated a file:
 C:\Temp\initial_access_marker.txt
 
 This confirms successful execution of the payload on the victim system.
+### Step 2.7 – PowerShell Payload Execution
 
+The downloaded PowerShell payload was executed on the Windows victim system.
+
+Command executed:
+
+powershell -ExecutionPolicy Bypass -File benign_initial_access.ps1
+
+The script successfully created the directory:
+
+C:\Temp
+
+and generated the file:
+
+C:\Temp\initial_access_marker.txt
+
+This confirms successful execution of attacker-delivered code on the victim machine.
 The Windows victim downloaded the PowerShell payload from the attacker HTTP server.
 
 URL:
