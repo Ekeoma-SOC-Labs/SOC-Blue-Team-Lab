@@ -162,3 +162,27 @@ Port:
 8080
 
 The captured packet confirms that the victim system retrieved the PowerShell payload from the attacker server.
+### Step 2.8 – Network Evidence in Wireshark
+
+Network traffic was analyzed using Wireshark to confirm the transfer of the payload.
+
+Observed network flow:
+
+Victim IP:
+192.168.56.102
+
+Attacker IP:
+192.168.56.106
+
+Port:
+8080
+
+HTTP request observed:
+
+GET /benign_initil_access.ps1.save HTTP/1.1
+
+The attacker server responded with:
+
+HTTP/1.0 200 OK
+
+This confirms that the victim system successfully downloaded the payload from the attacker infrastructure.
