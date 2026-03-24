@@ -235,6 +235,25 @@ Port:
 Security relevance:
 
 Zeek logs provide structured evidence of the payload delivery event, allowing SOC analysts to detect suspicious script downloads across large network environments.
+## Step 2.9 – Zeek HTTP Evidence
+
+Zeek logs confirmed the payload transfer.
+
+Observed request:
+
+GET /benign_initial_access.ps1
+
+Victim IP:
+192.168.56.102
+
+Attacker IP:
+192.168.56.106
+
+Port:
+8080
+
+Security relevance:
+Script downloads from internal hosts can indicate attacker staging infrastructure or malicious payload delivery.
 
 Observed system changes:
 
