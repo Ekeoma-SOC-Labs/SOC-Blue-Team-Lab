@@ -113,3 +113,21 @@ eth1 – NAT network
 IP address: 10.0.3.15
 
 The host-only network (192.168.56.0/24) is used for the attack simulation between Kali and the Windows victim.
+## Step 2.6 – Payload Retrieval
+
+Victim downloaded a PowerShell script from the attacker HTTP server.
+
+Victim IP:
+192.168.56.102
+
+Attacker IP:
+192.168.56.106
+
+Port:
+8080
+
+Observation:
+The script contents were retrieved successfully via HTTP.
+
+Security relevance:
+PowerShell script downloads are frequently used in malware delivery and post-exploitation staging.
