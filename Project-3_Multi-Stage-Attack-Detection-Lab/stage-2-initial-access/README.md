@@ -182,6 +182,25 @@ HTTP request observed:
 GET /benign_initil_access.ps1.save HTTP/1.1
 
 The attacker server responded with:
+### Step 2.9 – Zeek Log Investigation
+
+Zeek network security monitoring logs were analyzed to confirm the payload transfer.
+
+The HTTP log recorded the following request:
+
+GET /benign_initial_access.ps1
+
+Source IP:
+192.168.56.102
+
+Destination IP:
+192.168.56.106
+
+Port:
+8080
+
+This confirms that the victim system requested the PowerShell payload from the attacker server.
+
 
 HTTP/1.0 200 OK
 
