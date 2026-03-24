@@ -187,6 +187,34 @@ Destination port:
 Security relevance:
 
 HTTP requests for script files from internal servers may indicate attacker staging activity or malicious payload delivery.
+## Step 2.8 – Wireshark Network Investigation
+
+Wireshark packet capture confirmed the HTTP communication used to deliver the PowerShell payload.
+
+Observed packets:
+
+TCP handshake between victim and attacker.
+
+HTTP request:
+
+GET /benign_initil_access.ps1.save
+
+HTTP response:
+
+200 OK
+
+Victim IP:
+192.168.56.102
+
+Attacker IP:
+192.168.56.106
+
+Destination port:
+8080
+
+Security relevance:
+
+The captured HTTP request confirms the transfer of the PowerShell payload from the attacker server to the victim system.
 
 Observed system changes:
 
