@@ -89,3 +89,13 @@ Expected evidence sources:
 ### Why this matters
 
 This step defines the expected attack path before execution begins. It helps the analyst understand what evidence should appear during the Initial Access stage.
+### Step 2.6 – Victim Downloads Payload
+
+The Windows victim accessed and downloaded the PowerShell payload hosted on the Kali attacker server.
+
+URL accessed:
+http://192.168.56.106:8080/benign_initial_access.ps1
+
+The browser displayed the contents of the script, confirming successful payload retrieval.
+
+This action simulates the delivery of a malicious script from attacker infrastructure.
