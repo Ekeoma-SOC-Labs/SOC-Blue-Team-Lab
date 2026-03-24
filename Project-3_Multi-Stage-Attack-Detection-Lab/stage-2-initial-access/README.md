@@ -61,6 +61,24 @@ Files observed:
 - benign_initil_access.ps1.save
 
 This confirms that the victim successfully communicated with the attacker infrastructure.
+## Step 2.5 – Victim Server Contact
+
+Victim machine accessed the attacker HTTP server.
+
+Victim IP:
+192.168.56.102
+
+Attacker IP:
+192.168.56.106
+
+Port:
+8080
+
+Observation:
+The server responded with a directory listing containing the payload script.
+
+Impact:
+This confirms the attacker delivery infrastructure is reachable from the victim host.
 Expected evidence sources:
 
 - Windows endpoint activity
