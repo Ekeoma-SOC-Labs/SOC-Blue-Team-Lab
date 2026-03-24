@@ -142,3 +142,23 @@ File downloaded:
 benign_initial_access.ps1
 
 During download the browser displayed a warning indicating that the file could harm the device. This is expected behavior because PowerShell scripts are commonly used by malware.
+### Step 2.8 – Network Evidence in Wireshark
+
+Network traffic was analyzed using Wireshark to confirm the payload transfer.
+
+HTTP traffic revealed a request from the victim machine to the attacker server.
+
+Request observed:
+
+GET /benign_initial_access.ps1
+
+Source IP:
+192.168.56.102
+
+Destination IP:
+192.168.56.106
+
+Port:
+8080
+
+The captured packet confirms that the victim system retrieved the PowerShell payload from the attacker server.
