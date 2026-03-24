@@ -167,6 +167,26 @@ The marker file confirms that the payload executed successfully on the victim sy
 Security relevance:
 
 PowerShell execution with ExecutionPolicy bypass is commonly used by attackers to execute scripts while bypassing system protections.
+## Step 2.8 – HTTP Traffic Investigation
+
+Wireshark analysis confirmed the HTTP request used to download the payload.
+
+Observed request:
+
+GET /benign_initial_access.ps1
+
+Victim IP:
+192.168.56.102
+
+Attacker IP:
+192.168.56.106
+
+Destination port:
+8080
+
+Security relevance:
+
+HTTP requests for script files from internal servers may indicate attacker staging activity or malicious payload delivery.
 
 Observed system changes:
 
