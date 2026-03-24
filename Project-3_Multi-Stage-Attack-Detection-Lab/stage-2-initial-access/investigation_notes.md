@@ -131,3 +131,25 @@ The script contents were retrieved successfully via HTTP.
 
 Security relevance:
 PowerShell script downloads are frequently used in malware delivery and post-exploitation staging.
+## Step 2.7 – PowerShell Payload Execution
+
+Victim IP:
+192.168.56.102
+
+Script executed:
+benign_initial_access.ps1
+
+Command used:
+
+powershell -ExecutionPolicy Bypass -File benign_initial_access.ps1
+
+Observed system changes:
+
+Directory created:
+C:\Temp
+
+File created:
+C:\Temp\initial_access_marker.txt
+
+Security relevance:
+PowerShell execution with ExecutionPolicy bypass is a common technique used by attackers to run malicious scripts.
