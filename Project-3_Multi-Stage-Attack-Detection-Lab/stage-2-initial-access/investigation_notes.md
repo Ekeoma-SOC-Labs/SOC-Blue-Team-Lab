@@ -142,6 +142,31 @@ benign_initial_access.ps1
 Command used:
 
 powershell -ExecutionPolicy Bypass -File benign_initial_access.ps1
+## Step 2.7 – Execution Evidence
+
+Victim IP:
+192.168.56.102
+
+Payload:
+benign_initial_access.ps1
+
+Command executed:
+
+powershell -ExecutionPolicy Bypass -File benign_initial_access.ps1
+
+Observed artifacts:
+
+Directory created:
+C:\Temp
+
+File created:
+C:\Temp\initial_access_marker.txt
+
+The marker file confirms that the payload executed successfully on the victim system.
+
+Security relevance:
+
+PowerShell execution with ExecutionPolicy bypass is commonly used by attackers to execute scripts while bypassing system protections.
 
 Observed system changes:
 
