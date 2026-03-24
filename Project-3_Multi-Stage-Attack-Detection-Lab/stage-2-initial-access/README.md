@@ -99,3 +99,14 @@ http://192.168.56.106:8080/benign_initial_access.ps1
 The browser displayed the contents of the script, confirming successful payload retrieval.
 
 This action simulates the delivery of a malicious script from attacker infrastructure.
+### Step 2.6 – Payload Download
+
+The Windows victim downloaded the PowerShell payload from the attacker HTTP server.
+
+URL:
+http://192.168.56.106:8080
+
+File downloaded:
+benign_initial_access.ps1
+
+During download the browser displayed a warning indicating that the file could harm the device. This is expected behavior because PowerShell scripts are commonly used by malware.
