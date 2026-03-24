@@ -216,3 +216,21 @@ benign_initial_access.ps1
 was recovered from the captured traffic.
 
 This confirms that the payload delivered by the attacker server was successfully transmitted across the network.
+### Step 2.9 – Zeek Log Investigation
+
+Zeek was used on the Ubuntu sensor to analyze network traffic generated during the simulated attack.
+
+The HTTP log recorded the following request:
+
+GET /benign_initial_access.ps1
+
+Source IP:
+192.168.56.102
+
+Destination IP:
+192.168.56.106
+
+Port:
+8080
+
+This confirms the victim downloaded the PowerShell payload from the attacker server.
