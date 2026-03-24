@@ -205,3 +205,14 @@ This confirms that the victim system requested the PowerShell payload from the a
 HTTP/1.0 200 OK
 
 This confirms that the victim system successfully downloaded the payload from the attacker infrastructure.
+### Step 2.9 – Payload Extraction from Network Traffic
+
+The HTTP payload transferred during the attack was extracted from the packet capture using Wireshark.
+
+Using the Export HTTP Objects feature, the file:
+
+benign_initial_access.ps1
+
+was recovered from the captured traffic.
+
+This confirms that the payload delivered by the attacker server was successfully transmitted across the network.
