@@ -226,24 +226,6 @@ GET /benign_initial_access.ps1
 
 Source IP:
 192.168.56.102
-# Stage 2 — Initial Access (Detection & SIEM Analysis)
-
-## Overview
-Stage 2 of the Multi-Stage Attack Detection Lab focuses on detecting and analyzing network activity related to initial access using Zeek logs and Splunk SIEM.
-
-In this stage, network traffic was generated between lab machines, captured using Zeek, ingested into Splunk, analyzed, and used to create a detection rule and alert.
-
----
-
-## Lab Environment
-
-| Machine | Role | IP Address |
-|--------|------|-----------|
-| Windows 10 | Attacker / Client | 192.168.56.102 |
-| Ubuntu Server | Zeek + Splunk | 192.168.56.20 |
-| Target Service | HTTP Server | Port 8080 |
-
----
 
 ## Step 2.10 — Log Ingestion into Splunk
 
