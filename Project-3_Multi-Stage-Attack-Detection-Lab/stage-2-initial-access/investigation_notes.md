@@ -215,6 +215,26 @@ Destination port:
 Security relevance:
 
 The captured HTTP request confirms the transfer of the PowerShell payload from the attacker server to the victim system.
+## Step 2.9 – Zeek HTTP Log Evidence
+
+Zeek HTTP logs confirmed the network request used to retrieve the PowerShell payload.
+
+Observed request:
+
+GET /benign_initial_access.ps1
+
+Victim IP:
+192.168.56.102
+
+Attacker IP:
+192.168.56.106
+
+Port:
+8080
+
+Security relevance:
+
+Zeek logs provide structured evidence of the payload delivery event, allowing SOC analysts to detect suspicious script downloads across large network environments.
 
 Observed system changes:
 
