@@ -267,7 +267,24 @@ Security relevance:
 PowerShell execution with ExecutionPolicy bypass is a common technique used by attackers to run malicious scripts.
 ### Step 2.9 – Zeek Log Investigation
 
-Zeek logs confirmed that the Windows victim downloaded a PowerShell payload from the attacker server.
+Zeek logs confirmed that the Windows victim downloaded a PowerShell payload 
+## Detection Rule: HTTP Access Monitoring
+
+**Objective:** Detect web access activity within the network
+
+**Data Source:** Zeek (conn.log)
+
+**Splunk Query:**
+index=main sourcetype=connlog id.resp_p=8080
+
+**Analysis:**
+- Source IP: 192.168.56.102
+- Destination IP: 192.168.56.20
+- Port: 8080
+- Protocol: TCP
+
+**Conclusion:**
+This indicates HTTP access activity from a client to a web server, representing potential initial access behavior.from the attacker server.
 
 Evidence extracted from http.log:
 
@@ -279,3 +296,35 @@ File Requested: /benign_initial_access.ps1
 Response Code: 200 OK
 
 This confirms the successful transfer of the simulated initial access payload.
+The logs show that host 192.168.56.102 initiated multiple TCP connections to 192.168.56.20 on port 8080.
+
+This corresponds to HTTP activity generated during the simulation phase.
+
+Repeated connections indicate active interaction with a web service, which in a real SOC context could represent:
+
+- Normal user browsing
+- Initial access attempt
+- Command-and-control communication (if suspicious patterns exist)
+  This activity maps to MITRE ATT&CK:
+
+T1071.001 — Application Layer Protocol: Web Protocols
+
+An attacker may use HTTP/HTTPS to communicate with a target system or deliver payloads.
+This activity maps to MITRE ATT&CK:
+
+T1071.001 — Application Layer Protocol: Web Protocols
+
+An attacker may use HTTP/HTTPS to communicate with a target system or deliver payloads.
+## Step 2.11A – Splunk Data Validation
+
+Initial query using `sourcetype=connlog` returned no events.
+
+Validation was performed using:
+- `index=main source="conn.log"`
+- `index=main source="conn.log" | stats count by sourcetype`
+
+Purpose:
+Confirm whether the Zeek conn.log file was indexed under a different sourcetype.
+
+Analyst note:
+This step validates SIEM ingestion metadata before detection logic is applied.
