@@ -265,3 +265,17 @@ C:\Temp\initial_access_marker.txt
 
 Security relevance:
 PowerShell execution with ExecutionPolicy bypass is a common technique used by attackers to run malicious scripts.
+### Step 2.9 – Zeek Log Investigation
+
+Zeek logs confirmed that the Windows victim downloaded a PowerShell payload from the attacker server.
+
+Evidence extracted from http.log:
+
+Source IP: 192.168.56.102  
+Destination IP: 192.168.56.106  
+Port: 8080  
+HTTP Method: GET  
+File Requested: /benign_initial_access.ps1  
+Response Code: 200 OK
+
+This confirms the successful transfer of the simulated initial access payload.
