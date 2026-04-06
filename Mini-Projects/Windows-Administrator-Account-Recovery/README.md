@@ -1,218 +1,546 @@
-# Mini SOC Project — Windows Administrator Account Recovery
+# 🔐 Windows 10 VM Password Recovery & Security Hardening
 
-## Project Overview
-This mini project documents a **defensive, authorized Windows account recovery scenario** in a lab environment. The focus is not on bypassing authentication, but on understanding the difference between **approved recovery workflows** and **authentication bypass**, then analyzing the security implications, detection opportunities, and defensive controls.
-
-In this scenario, a Windows system administrator forgets the login details for an authorized lab machine. Recovery is performed through a legitimate administrative path, and the analyst investigates the relevant Windows security artifacts afterward.
-
----
-
-## Scenario
-A system administrator has forgotten the password for a Windows account on an authorized lab endpoint. The machine belongs to the SOC lab, and recovery must follow an approved method.
-
-### Safe recovery examples
-- Use a **backup authorized local administrator account**
-- Use **Microsoft account recovery** for a Microsoft-linked login
-- Use a **domain administrator** in an AD lab to reset the account
-- Rebuild/reimage the machine if recovery is not possible
-
-For this mini project, the recommended lab setup is:
-- `BackupAdmin` — authorized backup local administrator
-- `PrimaryAdmin` — the account whose password is forgotten
-
-The backup admin account is then used to reset the target account through standard Windows administration tools.
+![Status](https://img.shields.io/badge/Status-Completed-brightgreen?style=for-the-badge)
+![Platform](https://img.shields.io/badge/Platform-VirtualBox-orange?style=for-the-badge)
+![OS](https://img.shields.io/badge/OS-Windows%2010-blue?style=for-the-badge)
+![MITRE](https://img.shields.io/badge/MITRE%20ATT%26CK-T1546.008-red?style=for-the-badge)
+![Type](https://img.shields.io/badge/Type-Offensive%20%2B%20Defensive-purple?style=for-the-badge)
 
 ---
 
-## Project Objective
-The objectives of this mini project are to:
-1. Understand the difference between approved recovery and authentication bypass.
-2. Perform a legitimate Windows account recovery workflow in a lab.
-3. Collect and review relevant Windows logs and artifacts.
-4. Document the security risks that arise when organizations do not plan recovery safely.
-5. Recommend hardening controls to reduce account takeover risk.
+> **Lab Objective:** This project covers two phases. Phase 1 documents how a locked Windows 10 VM was recovered by exploiting the Utilman.exe Accessibility Feature — a real-world local privilege escalation technique mapped to MITRE ATT&CK T1546.008. Phase 2 documents the defensive response: security hardening, BitLocker encryption, detection rules, and remediation steps a SOC analyst or system administrator should implement after such an event.
 
 ---
 
-## What to Learn About Authentication Bypass
-Authentication bypass means **gaining access without following the intended identity verification process**. In professional blue-team work, the goal is not to practice bypassing accounts on systems, but to understand:
+## ⚠️ Disclaimer
 
-- what preconditions make bypass possible,
-- what evidence it leaves,
-- how defenders detect it,
-- and what controls stop it.
-
-### Core concepts to understand
-1. **Preconditions**
-   - Physical or console access
-   - Access to recovery media or boot settings
-   - Lack of disk encryption
-   - Weak account recovery planning
-   - Excessive privileges granted to a single account
-
-2. **Why it matters**
-   - It can lead to local account takeover
-   - It may expose sensitive files, cached credentials, browser data, SSH keys, tokens, and saved secrets
-   - It can provide a pivot point for lateral movement
-
-3. **What defenders should monitor**
-   - Failed logon events
-   - Successful administrative logons
-   - Password reset/account management events
-   - Local administrator group changes
-   - Unexpected Safe Mode, recovery, or offline maintenance behavior
-
-4. **What controls reduce the risk**
-   - BitLocker or other full-disk encryption
-   - Backup admin accounts stored and managed securely
-   - LAPS or Windows LAPS
-   - Separate user and administrator accounts
-   - BIOS/UEFI protection and restricted boot options
-   - Strong physical security
+This project was conducted in a **controlled lab environment** on a personally owned virtual machine. All techniques are documented strictly for **educational and defensive security purposes**. Never attempt these methods on systems you do not own or have explicit written permission to access.
 
 ---
 
-## Lab Setup
-### Recommended endpoint accounts
-- `BackupAdmin` — backup local admin
-- `PrimaryAdmin` — primary admin account
-- Optional standard user account for comparison
+## 📋 Table of Contents
 
-### Required tools
-- Windows lab VM or endpoint you are authorized to manage
-- Access to Event Viewer
-- Local Users and Groups (`lusrmgr.msc`) or Computer Management
-- Optional: PowerShell for event log review
-
----
-
-## Approved Recovery Workflow (High Level)
-1. Log in using the authorized **backup administrator account**.
-2. Open **Computer Management** or **Local Users and Groups**.
-3. Reset the password for the affected lab account through standard Windows administration.
-4. Log out and test login to the recovered account.
-5. Open Event Viewer and document the relevant evidence.
-
-### Important note
-This project intentionally focuses on **approved account recovery**, not on techniques that defeat Windows authentication.
+- [Lab Environment](#-lab-environment)
+- [MITRE ATT&CK Mapping](#-mitre-attck-mapping)
+- [PHASE 1 — Offensive: Password Recovery](#phase-1--offensive-password-recovery)
+  - [Step 1 — Triggering WinRE](#step-1--triggering-windows-recovery-environment)
+  - [Step 2 — WinRE CMD Blocked](#step-2--winre-cmd-access-blocked)
+  - [Step 3 — ISO Boot Method](#step-3--iso-boot-method)
+  - [Step 4 — Locating the Windows Drive](#step-4--locating-the-windows-drive)
+  - [Step 5 — Executing the Utilman Exploit](#step-5--executing-the-utilman-exploit)
+  - [Step 6 — Password Reset via SYSTEM Shell](#step-6--password-reset-via-system-shell)
+  - [Step 7 — Access Restored](#step-7--access-restored)
+- [PHASE 2 — Defensive: Security Hardening](#phase-2--defensive-security-hardening)
+  - [Restore Utilman.exe](#1-restore-utilmanexe)
+  - [Enable BitLocker](#2-enable-bitlocker-encryption)
+  - [BIOS Boot Protection](#3-bios--uefi-boot-protection)
+  - [Account Hardening](#4-account-hardening)
+  - [Enable Audit Logging](#5-enable-audit-logging--siem-detection)
+- [SOC Detection Analysis](#-soc-detection-analysis)
+- [Key Lessons Learned](#-key-lessons-learned)
 
 ---
 
-## SOC Investigation Tasks
-After the recovery, the analyst should investigate:
+## 🖥️ Lab Environment
 
-### 1. Logon activity
-Look for:
-- Failed logons
-- Successful logons
-- Administrative logons
-- Logon type patterns
-
-### 2. Account management activity
-Look for:
-- Password reset events
-- Account changes
-- User/group changes
-
-### 3. Privilege use
-Look for:
-- Use of local admin accounts
-- Security log events tied to privileged sessions
-- Use of built-in admin tools
-
-### 4. Timeline reconstruction
-Document:
-- When the lockout/forgotten-password situation was identified
-- When backup admin access was used
-- When the password was reset
-- When the target account was successfully accessed again
+| Component | Details |
+|-----------|---------|
+| **Hypervisor** | Oracle VirtualBox |
+| **Guest OS** | Windows 10 (Version 10.0.19041) |
+| **Target Account** | Win10User (Local Account) |
+| **Recovery Media** | Windows 10 22H2 ISO |
+| **Attack Type** | Local Privilege Escalation / Authentication Bypass |
+| **Date Performed** | April 5, 2026 |
 
 ---
 
-## Windows Artifacts to Review
-### Event Viewer
-Primary log locations:
-- **Windows Logs > Security**
-- **Windows Logs > System**
-- **Applications and Services Logs** (where relevant)
+## 🗺️ MITRE ATT&CK Mapping
 
-### Key evidence categories
-- Failed logon attempts
-- Successful logon events
-- Account management changes
-- Group membership changes
-- Administrative activity tied to the recovery timeline
+| Field | Details |
+|-------|---------|
+| **Tactic** | Persistence / Privilege Escalation |
+| **Technique** | T1546.008 — Accessibility Features |
+| **Platform** | Windows |
+| **Permissions Required** | SYSTEM (at execution) |
+| **Defense Bypassed** | Windows Authentication |
+| **Detection** | File Monitoring, Process Monitoring, Windows Event Logs |
 
-### Useful PowerShell / command-line review ideas
-```powershell
-Get-WinEvent -LogName Security -MaxEvents 50
+---
+
+## PHASE 1 — Offensive: Password Recovery
+
+### Attack Chain
+```
+Force 3x Boot Interruption
+        ↓
+Automatic Repair Screen → WinRE
+        ↓
+WinRE CMD Blocked (password required)
+        ↓
+Boot from Windows 10 ISO
+        ↓
+ISO Recovery CMD (no password required)
+        ↓
+Locate Windows Drive (D:)
+        ↓
+move utilman.exe → utilman.exe.bak
+copy /y syswow64\cmd.exe → system32\utilman.exe
+        ↓
+Reboot → Login Screen
+        ↓
+Click Accessibility Icon → SYSTEM Shell
+        ↓
+net user Win10User [newpassword]
+        ↓
+Full Access Restored ✅
 ```
 
-```powershell
-Get-LocalUser
+---
+
+### Step 1 — Triggering Windows Recovery Environment
+
+**Method:** Force Restart 3 Times
+
+When Windows boot is interrupted three consecutive times, it automatically launches the **Windows Recovery Environment (WinRE)**.
+
+**Steps Performed:**
+1. Started the Win10 VM in VirtualBox
+2. During boot (spinning dots visible) → **Machine → Reset** in VirtualBox
+3. Repeated 3 times
+4. 4th boot → **Automatic Repair** screen launched automatically
+
+![Automatic Repair Screen](screenshots/01_automatic_repair.png)
+*Windows Automatic Repair screen triggered after 3 forced boot interruptions — entry point into WinRE.*
+
+**SOC Interpretation — Windows Events Generated:**
+
+| Event ID | Description |
+|----------|-------------|
+| 41 | Kernel-Power — system rebooted without clean shutdown |
+| 6008 | Unexpected system shutdown |
+| 1001 | Windows Error Reporting — boot failure |
+
+> 🔴 Multiple Event ID 41 entries in rapid succession = potential forced WinRE access attempt.
+
+---
+
+### Step 2 — WinRE CMD Access Blocked
+
+Navigating to **Troubleshoot → Advanced Options → Command Prompt** prompted for the **Win10User password** — the same forgotten password.
+
+![Advanced Options](screenshots/02_advanced_options.png)
+*WinRE Advanced Options menu — Command Prompt requires account credentials before granting access.*
+
+> ✅ **Defensive Win:** The WinRE password prompt successfully blocked the first attempt — showing that local account passwords do provide an extra layer of protection in the recovery environment.
+
+**Resolution:** ISO boot method used as fallback — bypasses WinRE password entirely.
+
+---
+
+### Step 3 — ISO Boot Method
+
+**VirtualBox Configuration:**
+1. Powered off VM → **Settings → Storage**
+2. Mounted `Win10_22H2_English_x64v1.iso` as optical drive
+3. **Settings → System → Motherboard** → moved **Optical to top** of boot order
+
+![VirtualBox Storage](screenshots/03_virtualbox_storage.png)
+*VirtualBox Storage settings — Windows 10 ISO mounted as virtual optical drive.*
+
+![Boot Order](screenshots/05_boot_order_optical_first.png)
+*Boot order set with Optical first — forces VM to boot from ISO.*
+
+![Windows Setup](screenshots/08_windows_setup.png)
+*Windows Setup loaded from ISO. Navigation path: Next → Repair your computer → Troubleshoot → Advanced Options → Command Prompt.*
+
+**Result:** CMD opened as Administrator with **NO password prompt** ✅
+
+> 🔴 **Critical SOC Finding:** Booting from external media bypasses WinRE access controls entirely. Without **BitLocker** and **BIOS boot protection**, any bootable ISO can access and modify system files without credentials.
+
+---
+
+### Step 4 — Locating the Windows Drive
+
+In recovery environments, drive letters are reassigned. The command was used to identify the correct Windows drive:
+
+```cmd
+dir d:\windows\system32\utilman.exe
 ```
 
+**Output:**
+```
+Directory of d:\windows\system32
+12/06/2025  05:29 AM    236,544 utilman.exe
+1 File(s)   236,544 bytes
+```
+
+**Finding:** Windows confirmed on **D: drive** ✅
+
+![CMD Utilman Found](screenshots/09_cmd_utilman_found.png)
+*Recovery CMD confirming utilman.exe exists on D:\windows\system32 — Windows drive identified.*
+
+> 💡 In recovery environments, the Windows drive is often **D:** because the recovery partition takes **C:**. Always verify the drive letter before running commands.
+
+---
+
+### Step 5 — Executing the Utilman Exploit
+
+#### Step 5a — Backup Original Utilman.exe
+
+```cmd
+move d:\windows\system32\utilman.exe d:\windows\system32\utilman.exe.bak
+```
+
+| Part | Explanation |
+|------|-------------|
+| `move` | Renames/moves a file |
+| `utilman.exe` | Original Windows accessibility executable |
+| `utilman.exe.bak` | Backup copy with .bak extension |
+
+**Output:** `1 file(s) moved.` ✅
+
+---
+
+#### Step 5b — Replace Utilman with CMD
+
+```cmd
+copy /y d:\windows\syswow64\cmd.exe d:\windows\system32\utilman.exe
+```
+
+| Part | Explanation |
+|------|-------------|
+| `copy` | Copies a file from source to destination |
+| `/y` | Suppresses overwrite confirmation — must be placed immediately after `copy` |
+| `syswow64\cmd.exe` | Source — avoids file-lock conflicts with the system32 version |
+| `system32\utilman.exe` | Destination — cmd.exe placed with utilman's exact filename |
+
+**Output:** `1 file(s) copied.` ✅
+
+> ⚠️ **Key Syntax Lesson:** `copy /y source destination` — the `/y` flag MUST come immediately after `copy`. Placing it at the end does not suppress the overwrite prompt in recovery environments.
+
+> 🔴 **SOC Alert:** Any modification to `utilman.exe` in `C:\Windows\System32\` should trigger an immediate **File Integrity Monitoring (FIM)** alert. Sysmon Event ID 11 (FileCreate) and hash mismatch detection would catch this.
+
+---
+
+### Step 6 — Password Reset via SYSTEM Shell
+
+After rebooting to the login screen, clicking the **Ease of Access button** (bottom-right) launched **cmd.exe as NT AUTHORITY\SYSTEM** — because utilman.exe had been replaced.
+
+![Login Screen Ease of Access](screenshots/06_login_screen_ease_of_access.png)
+*Login screen showing "Ease of access" tooltip — clicking this now launches SYSTEM-level CMD.*
+
+**Password Reset Command:**
+```cmd
+net user Win10User Reign+R1
+```
+
+| Part | Explanation |
+|------|-------------|
+| `net user` | Windows built-in local account management command |
+| `Win10User` | Target account whose password is being reset |
+| `Reign+R1` | New password — no knowledge of old password required |
+
+**Output:** `The command completed successfully.` ✅
+
+![Password Reset Success](screenshots/10_password_reset_success.png)
+*SYSTEM-level CMD (title bar confirms C:\Windows\system32\utilman.exe) — password reset completed successfully without knowledge of original credentials.*
+
+**SOC Events Generated:**
+
+| Event ID | Description | Significance |
+|----------|-------------|-------------|
+| 4724 | Account password reset | Generated when SYSTEM resets a local account password |
+| 4625 | Failed logon (prior) | No successful logon before the reset |
+
+> 🔴 **High-Confidence IOC:** Event ID 4724 triggered by **NT AUTHORITY\SYSTEM** with no preceding Event ID 4624 (successful logon) is a near-definitive indicator of the Utilman exploit being used.
+
+---
+
+### Step 7 — Access Restored
+
+![Desktop Access Restored](screenshots/12_desktop_access_restored.png)
+*Windows 10 desktop fully accessible — April 5, 2026, 8:16 PM. Recovery complete.*
+
+---
+
+## PHASE 2 — Defensive: Security Hardening
+
+> Now that access has been recovered, a responsible SOC analyst or system administrator must immediately remediate the vulnerabilities exploited and harden the system to prevent recurrence.
+
+---
+
+### 1. Restore Utilman.exe
+
+The modified `utilman.exe` must be restored immediately to close the SYSTEM shell backdoor.
+
+**Command (run as Administrator):**
+```cmd
+sfc /scannow
+```
+
+This scans and restores all corrupted or modified Windows system files to their original state, including `utilman.exe`.
+
+**Or manually restore from backup:**
+```cmd
+copy /y c:\windows\syswow64\utilman.exe c:\windows\system32\utilman.exe
+```
+
+**Verify restoration:**
+```cmd
+dir c:\windows\system32\utilman.exe
+```
+
+> ✅ Once restored, clicking the Accessibility icon at the login screen will return to the normal Ease of Access menu — not CMD.
+
+**Risk if NOT restored:**
+
+| Risk | Impact |
+|------|--------|
+| Anyone with VM/physical access | Can get SYSTEM shell instantly at login screen |
+| No credentials required | Complete authentication bypass permanently active |
+| Persistent backdoor | Survives reboots until manually remediated |
+
+---
+
+### 2. Enable BitLocker Encryption
+
+BitLocker is the most critical control against this attack. With BitLocker enabled, the drive cannot be read or modified by external boot media without the encryption key — making the ISO boot method completely ineffective.
+
+**Enable BitLocker on Windows 10:**
+
+1. Open **Control Panel → System and Security → BitLocker Drive Encryption**
+2. Click **"Turn on BitLocker"** on the C: drive
+3. Choose how to unlock: **Password** or **USB key**
+4. Choose where to save the recovery key:
+   - **Microsoft account** (recommended)
+   - **USB flash drive**
+   - **Print the recovery key**
+5. Choose encryption mode: **"Encrypt entire drive"** (recommended for existing drives)
+6. Click **"Start encrypting"**
+
+**Or via PowerShell (as Administrator):**
+```powershell
+Enable-BitLocker -MountPoint "C:" -EncryptionMethod XtsAes256 -UsedSpaceOnly -RecoveryPasswordProtector
+```
+
+**Verify BitLocker status:**
+```powershell
+Get-BitLockerVolume
+```
+
+> ✅ With BitLocker enabled, booting from an ISO or any external media will show an encrypted drive — no files can be read or modified without the BitLocker key.
+
+**SOC Relevance:** BitLocker status can be monitored via:
+- **Event ID 24620** — BitLocker enabled
+- **Event ID 24658** — BitLocker suspended
+- **Microsoft Intune / Endpoint Manager** for enterprise environments
+
+---
+
+### 3. BIOS / UEFI Boot Protection
+
+Prevents unauthorized boot order changes that enable the ISO boot method.
+
+**Steps:**
+1. Restart the VM/PC → press **F2, F10, DEL, or ESC** during boot to enter BIOS
+2. Navigate to **Security** tab
+3. Set a **BIOS/UEFI Administrator Password**
+4. Navigate to **Boot** tab
+5. **Disable booting from:**
+   - USB devices
+   - Optical drives (CD/DVD)
+   - Network/PXE boot
+6. Set **Hard Drive as the only boot device**
+7. Enable **Secure Boot** if available
+8. Save and exit
+
+**In VirtualBox (for lab hardening):**
+1. VM **Settings → System → Motherboard**
+2. Uncheck **Optical** from Boot Device Order
+3. Leave only **Hard Disk** checked
+4. Click **OK**
+
+> ✅ Without the ability to change boot order, an attacker cannot boot from external media even with physical access to the machine.
+
+---
+
+### 4. Account Hardening
+
+#### 4a — Set a Strong Password Policy
+```powershell
+# Minimum password length
+net accounts /minpwlen:12
+
+# Password complexity
+secedit /export /cfg C:\secpolicy.cfg
+# Edit cfg to set PasswordComplexity=1
+secedit /configure /db C:\Windows\security\local.sdb /cfg C:\secpolicy.cfg
+
+# Account lockout after 5 failed attempts
+net accounts /lockoutthreshold:5
+net accounts /lockoutduration:30
+net accounts /lockoutwindow:30
+```
+
+#### 4b — Disable the Built-in Administrator Account
+```cmd
+net user Administrator /active:no
+```
+
+#### 4c — Rename the Administrator Account
+```cmd
+wmic useraccount where name='Administrator' rename 'LabAdmin2026'
+```
+
+#### 4d — Create a Separate Standard User Account
+```cmd
+net user StandardUser Password123! /add
+```
+
+> ✅ Using a standard account for daily tasks reduces the blast radius if credentials are compromised.
+
+#### 4e — Review Local Administrators Group
 ```powershell
 Get-LocalGroupMember -Group "Administrators"
 ```
 
-These are safe administrative review commands and help support documentation.
+Remove any unnecessary accounts from the Administrators group.
 
 ---
 
-## SOC Relevance
-This project is useful for blue-team learning because it teaches:
-- the difference between safe recovery and unsafe bypass behavior,
-- how account recovery activity can appear in Windows logs,
-- why BitLocker and recovery planning matter,
-- and how administrators can reduce the chance of accidental insecurity when credentials are forgotten.
+### 5. Enable Audit Logging & SIEM Detection
+
+#### Enable Advanced Audit Policy
+```cmd
+auditpol /set /subcategory:"Logon" /success:enable /failure:enable
+auditpol /set /subcategory:"Account Management" /success:enable /failure:enable
+auditpol /set /subcategory:"Privilege Use" /success:enable /failure:enable
+```
+
+#### Install Sysmon for Enhanced Logging
+Download Sysmon from Microsoft Sysinternals and install:
+```cmd
+sysmon -accepteula -i sysmonconfig.xml
+```
+
+Sysmon will now generate:
+- **Event ID 11** — FileCreate (catches utilman.exe replacement)
+- **Event ID 1** — ProcessCreate (catches cmd.exe spawned by winlogon.exe)
+
+#### SIEM Detection Queries
+
+**Splunk — Detect Utilman Exploit:**
+```spl
+index=wineventlog EventCode=4724
+| where SubjectUserName="SYSTEM"
+| table _time, ComputerName, TargetUserName, SubjectUserName
+| sort -_time
+```
+
+**KQL (Microsoft Sentinel) — Detect Password Reset by SYSTEM:**
+```kql
+SecurityEvent
+| where EventID == 4724
+| where SubjectUserName == "SYSTEM"
+| where TargetUserName != "SYSTEM"
+| project TimeGenerated, Computer, TargetUserName, SubjectUserName
+| order by TimeGenerated desc
+```
+
+**Splunk — Detect CMD Spawned by Winlogon:**
+```spl
+index=sysmon EventCode=1 ParentImage="*winlogon.exe" Image="*cmd.exe"
+| table _time, ComputerName, Image, ParentImage, CommandLine
+```
 
 ---
 
-## Suggested Screenshot Checklist
-Capture screenshots for:
-- [ ] Windows login screen showing inability to access the target account
-- [ ] Successful login to the backup admin account
-- [ ] Computer Management / Local Users and Groups
-- [ ] Password reset action for the target account
-- [ ] Successful login to the recovered account
-- [ ] Event Viewer showing relevant Security log activity
-- [ ] Administrators group membership review
+## 🔍 SOC Detection Analysis
 
-### Suggested screenshot names
-- `WIN-PWREC-01-target-account-unavailable.png`
-- `WIN-PWREC-02-backup-admin-login.png`
-- `WIN-PWREC-03-computer-management-users.png`
-- `WIN-PWREC-04-password-reset-action.png`
-- `WIN-PWREC-05-recovered-account-login.png`
-- `WIN-PWREC-06-eventviewer-security-log.png`
-- `WIN-PWREC-07-admin-group-review.png`
+### Full Detection Coverage Summary
+
+| Attack Stage | Detection Method | Event/Log |
+|-------------|-----------------|-----------|
+| Forced reboots | Kernel-Power alerts | Event ID 41, 6008 |
+| WinRE access | Boot event monitoring | Event ID 1074 |
+| File replacement | File Integrity Monitoring | Sysmon Event ID 11 |
+| Hash mismatch | EDR / FIM alert | utilman.exe hash change |
+| SYSTEM password reset | Security log | Event ID 4724 |
+| CMD at login screen | Process monitoring | Sysmon Event ID 1 |
+| No prior logon | Correlation rule | 4724 without 4624 |
+
+### Detection Gap Without Hardening
+Without Sysmon, FIM, or SIEM rules, this entire attack chain produces **minimal visible alerts** in a default Windows 10 configuration — demonstrating why layered security monitoring is critical.
 
 ---
 
-## Defensive Controls
-To reduce account recovery risk and account takeover exposure:
-1. **Enable BitLocker** to protect offline access to the Windows disk.
-2. **Maintain a secure backup admin strategy** rather than depending on a single admin account.
-3. **Use Windows LAPS** or another secure local admin password management approach.
-4. **Separate daily-use and administrative accounts**.
-5. **Protect BIOS/UEFI settings** and restrict alternate boot paths.
-6. **Monitor Security logs** for failed logons, account changes, and admin activity.
-7. **Document account recovery procedures** so recovery is safe, repeatable, and auditable.
+## 📚 Key Lessons Learned
+
+**1. Physical Access = Game Over Without Encryption**
+Without BitLocker, anyone with physical or hypervisor access can recover any local Windows account in under 10 minutes.
+
+**2. `/y` Flag Syntax in Recovery Environments**
+```cmd
+copy /y source destination  ✅ Correct — suppresses overwrite prompt
+copy source destination /y  ❌ Incorrect — /y at end doesn't work
+```
+
+**3. Drive Letters Change in Recovery Environments**
+Always use `dir [drive]:\windows\system32\utilman.exe` to identify the correct drive before executing commands.
+
+**4. WinRE Password is Insufficient Alone**
+The WinRE password prompt blocked the first attempt but was bypassed completely via ISO boot. Defense in depth requires multiple controls.
+
+**5. SYSTEM Password Resets are High-Fidelity IOCs**
+Event ID 4724 from SYSTEM without a preceding 4624 is one of the highest-confidence indicators of this attack. This should be a priority detection rule in any SIEM.
+
+**6. Remediation Must Be Immediate**
+Leaving `utilman.exe` modified creates a permanent backdoor that survives reboots. Always remediate immediately after any recovery exercise.
 
 ---
 
-## Mini Incident Summary
-**Incident Type:** Administrative account recovery scenario  
-**Affected Asset:** Windows lab endpoint  
-**Cause:** Forgotten password / lost account access  
-**Recovery Method:** Approved administrative reset path  
-**Primary Risk:** Unsafe recovery shortcuts could lead to account takeover exposure  
-**Key Mitigation:** BitLocker, Windows LAPS, backup admin governance, and monitoring
+## 🛡️ Hardening Checklist
+
+```
+[ ] utilman.exe restored to original (sfc /scannow)
+[ ] BitLocker enabled on all drives
+[ ] BIOS/UEFI password set
+[ ] USB/Optical boot disabled in BIOS
+[ ] Strong password policy enforced (min 12 chars, complexity)
+[ ] Account lockout policy configured (5 attempts, 30 min)
+[ ] Built-in Administrator account disabled or renamed
+[ ] Sysmon installed and configured
+[ ] Audit policies enabled (Logon, Account Management, Privilege Use)
+[ ] SIEM detection rules created for Event ID 4724 from SYSTEM
+[ ] File Integrity Monitoring enabled on C:\Windows\System32\
+```
 
 ---
 
-## Conclusion
-This mini project helps analysts understand that Windows password recovery is not just an IT support task—it is also a security issue. Organizations that fail to plan safe recovery may create pressure for insecure shortcuts. In contrast, a mature blue-team approach combines **approved recovery methods, logging, monitoring, encryption, and access governance**.
+## 📁 Screenshots Index
 
-The professional lesson is simple: **learn the conditions that make authentication bypass possible, then become strong at detecting, preventing, and documenting those risks.**
+| # | Filename | Description |
+|---|----------|-------------|
+| 1 | `01_automatic_repair.png` | Automatic Repair screen — WinRE triggered |
+| 2 | `02_advanced_options.png` | WinRE Advanced Options menu |
+| 3 | `03_virtualbox_storage.png` | VirtualBox Storage — ISO mounted |
+| 4 | `05_boot_order_optical_first.png` | Boot order — Optical first |
+| 5 | `06_login_screen_ease_of_access.png` | Login screen — Ease of Access button |
+| 6 | `08_windows_setup.png` | Windows Setup loaded from ISO |
+| 7 | `09_cmd_utilman_found.png` | Recovery CMD — exploit commands executed |
+| 8 | `10_password_reset_success.png` | SYSTEM CMD — password reset successful |
+| 9 | `12_desktop_access_restored.png` | Windows desktop — full access restored |
+
+---
+
+## 🔗 References
+
+- [MITRE ATT&CK T1546.008 — Accessibility Features](https://attack.mitre.org/techniques/T1546/008/)
+- [Microsoft Event ID 4724](https://docs.microsoft.com/en-us/windows/security/threat-protection/auditing/event-4724)
+- [BitLocker Overview — Microsoft](https://docs.microsoft.com/en-us/windows/security/information-protection/bitlocker/bitlocker-overview)
+- [Sysmon — Microsoft Sysinternals](https://docs.microsoft.com/en-us/sysinternals/downloads/sysmon)
+- [Windows Recovery Environment — Microsoft](https://docs.microsoft.com/en-us/windows-hardware/manufacture/desktop/windows-recovery-environment--windows-re--technical-reference)
+
+---
+
+*Part of the SOC Blue Team Lab | Ekeoma-SOC-Labs | April 2026*
